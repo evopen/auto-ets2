@@ -5,10 +5,21 @@ cmake_minimum_required (VERSION 3.15)
 
 project ("auto-ets2" CXX)
 
+set(CMAKE_CXX_STANDARD 17)
+
 find_package(OpenCV CONFIG REQUIRED)
 link_libraries(opencv_core opencv_highgui)
 find_package(Tesseract CONFIG REQUIRED)
 link_libraries(libtesseract)
+find_package(CUDA 10.2 REQUIRED)
+
+include_directories("D:/whatever/TensorRT-7.0.0.11/include")
+include_directories("D:/whatever/TensorRT-7.0.0.11/samples/common")
+include_directories(${CUDA_INCLUDE_DIRS})
+
+link_directories("D:/whatever/TensorRT-7.0.0.11/lib")
+link_libraries("nvinfer.lib")
+link_libraries(${CUDA_LIBRARIES})
 
 # Include sub-projects.
 add_subdirectory ("src")

@@ -1,3 +1,7 @@
 out/
 .vs/
 build/
+models/*
+.idea/
+*.dll
+__pycache__/

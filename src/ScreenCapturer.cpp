@@ -3,6 +3,35 @@
 #include <array>
 
 #pragma comment(lib, "D3D11.lib")
+#pragma comment(lib, "DXGI.lib")
+
+std::vector<IDXGIAdapter*> EnumerateAdapters(void)
+{
+    IDXGIAdapter* pAdapter;
+    std::vector<IDXGIAdapter*> vAdapters;
+    IDXGIFactory1* pFactory = NULL;
+
+
+    // Create a DXGIFactory object.
+    if (FAILED(CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void**) &pFactory)))
+    {
+        return vAdapters;
+    }
+
+
+    for (UINT i = 0; pFactory->EnumAdapters(i, &pAdapter) != DXGI_ERROR_NOT_FOUND; ++i)
+    {
+        vAdapters.push_back(pAdapter);
+    }
+
+
+    if (pFactory)
+    {
+        pFactory->Release();
+    }
+
+    return vAdapters;
+}
 
 void ScreenCapturer::Init()
 {
@@ -13,8 +42,19 @@ void ScreenCapturer::Init()
 
     D3D_FEATURE_LEVEL acquired_feature_level;
 
-    hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, feature_levels.data(), feature_levels.size(),
-        D3D11_SDK_VERSION, &device_, &acquired_feature_level, &device_context_);
+    auto adapters = EnumerateAdapters();
+    int index;
+    for (index = 0; index < adapters.size(); index++)
+    {
+        DXGI_ADAPTER_DESC desc;
+        adapters[index]->GetDesc(&desc);
+        if (std::wstring(desc.Description).find(L"Intel") != std::string::npos)
+            break;
+    }
+
+
+    hr = D3D11CreateDevice(adapters[index], D3D_DRIVER_TYPE_UNKNOWN, nullptr, 0, feature_levels.data(),
+        feature_levels.size(), D3D11_SDK_VERSION, &device_, &acquired_feature_level, &device_context_);
 
     if (!device_)
     {
@@ -47,7 +87,7 @@ void ScreenCapturer::Init()
 
     dxgi_output1->Release();
 
-        output_dupl->GetDesc(&output_dupl_desc);
+    output_dupl->GetDesc(&output_dupl_desc);
 
 
     D3D11_TEXTURE2D_DESC desc;

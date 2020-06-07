@@ -1,29 +1,171 @@
 #pragma once
 
-#include "ScreenCapturer.h"
+#include "LaneDetector.h"
+#include "config.h"
 
 #include <opencv2/opencv.hpp>
+#include <tesseract/baseapi.h>
+
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <vector>
 
 // assuming 16:9 pixel ratio
 class InfoCollector
 {
 public:
-    void InitCollector();
-    void SetScreenshot(cv::Mat screenshot) { screenshot_ = screenshot; }
-    
+    InfoCollector(int width, int height) : width_(width), height_(height)
+    {
+        speed_        = 0;
+        speed_limit_  = 0;
+        cruise_speed_ = 0;
 
-private:
+        speed_ocr_        = new tesseract::TessBaseAPI();
+        speed_limit_ocr_  = new tesseract::TessBaseAPI();
+        cruise_speed_ocr_ = new tesseract::TessBaseAPI();
+
+        speed_ocr_->Init(NULL, "eng", tesseract::OEM_LSTM_ONLY);
+        speed_limit_ocr_->Init(NULL, "eng", tesseract::OEM_LSTM_ONLY);
+        cruise_speed_ocr_->Init(NULL, "eng", tesseract::OEM_LSTM_ONLY);
+
+        speed_ocr_->SetVariable("tessedit_char_whitelist", "0123456789");
+        speed_ocr_->SetPageSegMode(tesseract::PSM_SINGLE_WORD);
+        speed_limit_ocr_->SetVariable("tessedit_char_whitelist", "0123456789");
+        speed_limit_ocr_->SetPageSegMode(tesseract::PSM_SINGLE_WORD);
+        cruise_speed_ocr_->SetVariable("tessedit_char_whitelist", "0123456789");
+        cruise_speed_ocr_->SetPageSegMode(tesseract::PSM_SINGLE_WORD);
+    }
+    void InitCollector()
+    {
+        drive_window_rect_ = GetRectFromRegion(config::drive_window_region);
+        speed_rect_        = GetRectFromRegion(config::speed_region);
+        speed_limit_rect_  = GetRectFromRegion(config::speed_limit_region);
+        cruise_speed_rect_ = GetRectFromRegion(config::cruise_control_speed_region);
+    }
+
+    void InitLaneDetector(std::filesystem::path model_path)
+    {
+        if (lane_detector)
+        {
+            delete (lane_detector);
+        }
+        else
+        {
+            lane_detector = new LaneDetector(model_path);
+            lane_img      = cv::Mat::zeros(36, 100, CV_8SC1);
+        }
+    }
+
+    void SetScreenshot(cv::Mat screenshot) { screenshot_ = screenshot; }
+    void CropToGameWindow(cv::Rect rect) { game_window_ = screenshot_(rect); }
+    void CropRegion()
+    {
+        drive_window_ = game_window_(drive_window_rect_);
+        speed_img_    = game_window_(speed_rect_);
+        cv::cvtColor(speed_img_, speed_img_, cv::COLOR_BGR2GRAY);
+        speed_img_       = cv::Scalar(255) - speed_img_;
+        speed_limit_img_ = game_window_(speed_limit_rect_);
+        cv::cvtColor(speed_limit_img_, speed_limit_img_, cv::COLOR_BGR2GRAY);
+
+        cruise_speed_img_ = game_window_(cruise_speed_rect_);
+        cv::cvtColor(cruise_speed_img_, cruise_speed_img_, cv::COLOR_BGR2GRAY);
+        cruise_speed_img_ = cv::Scalar(255) - cruise_speed_img_;
+    }
+    void ReadInfo()
+    {
+        std::thread lane_detect_thread(&LaneDetector::Detect, lane_detector, drive_window_, lane_img);
+        std::thread t1(&InfoCollector::ReadNumber, this, speed_ocr_, speed_img_, &speed_);
+        std::thread t2(&InfoCollector::ReadNumber, this, speed_limit_ocr_, speed_limit_img_, &speed_limit_);
+        std::thread t3(&InfoCollector::ReadNumber, this, cruise_speed_ocr_, cruise_speed_img_, &cruise_speed_);
+
+        t1.join();
+        t2.join();
+        t3.join();
+        lane_detect_thread.join();
+
+        cv::resize(lane_img, lane_img_large, cv::Size(800, 288), 0, 0, cv::INTER_NEAREST);
+    }
+
+    void LanePostprocess()
+    {
+        cv::inRange(lane_img_large, cv::Scalar(32), cv::Scalar(32), lanes[0]);
+        cv::inRange(lane_img_large, cv::Scalar(64), cv::Scalar(64), lanes[1]);
+        cv::inRange(lane_img_large, cv::Scalar(95), cv::Scalar(95), lanes[2]);
+        cv::inRange(lane_img_large, cv::Scalar(127), cv::Scalar(127), lanes[3]);
+
+        for (auto& lane : lanes)
+        {
+            cv::dilate(lane, lane, cv::Mat::ones(45, 30, CV_8SC1));
+            cv::erode(lane, lane, cv::Mat::ones(30, 30, CV_8SC1));
+        }
+        lane_img_large = lanes[0] + lanes[1] + lanes[2] + lanes[3];
+    }
+
+
+public:
     int speed_;
     int speed_limit_;
     int cruise_speed_;
 
+    int width_;
+    int height_;
+
     cv::Mat screenshot_;
     cv::Mat game_window_;
     cv::Mat drive_window_;
+
     cv::Mat wing_mirror_left_;
     cv::Mat wing_mirror_right_;
     cv::Mat speed_limit_img_;
     cv::Mat speed_img_;
     cv::Mat cruise_speed_img_;
     cv::Mat map_img_;
+    cv::Mat lane_img;
+    cv::Mat lane_img_large;
+
+    std::array<cv::Mat, 4> lanes;
+
+    cv::Rect GetRectFromRegion(const float region[4])
+    {
+        int x             = float(width_) * region[0];
+        int y             = float(height_) * region[1];
+        int region_width  = float(width_) * region[2];
+        int region_height = float(height_) * region[3];
+        return cv::Rect(x, y, region_width, region_height);
+    }
+
+private:
+    cv::Rect drive_window_rect_;
+    cv::Rect speed_rect_;
+    cv::Rect speed_limit_rect_;
+    cv::Rect cruise_speed_rect_;
+
+    tesseract::TessBaseAPI* speed_ocr_;
+    tesseract::TessBaseAPI* speed_limit_ocr_;
+    tesseract::TessBaseAPI* cruise_speed_ocr_;
+
+    nvinfer1::IRuntime* runtime;
+    nvinfer1::ICudaEngine* engine;
+    nvinfer1::IExecutionContext* context;
+
+    LaneDetector* lane_detector = nullptr;
+
+    bool ReadNumber(tesseract::TessBaseAPI* ocr, cv::Mat img, int* number)
+    {
+        ocr->SetImage(img.data, img.size().width, img.size().height, img.channels(), img.step1());
+        ocr->SetSourceResolution(300);
+        ocr->Recognize(0);
+
+        std::string outText = std::string(ocr->GetUTF8Text());
+        if (outText.empty())
+        {
+            return false;
+        }
+        else
+        {
+            *number = atoi(outText.c_str());
+            return true;
+        }
+    }
 };

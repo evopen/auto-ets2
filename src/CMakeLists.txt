@@ -1,6 +1,4 @@
 add_executable(autodriver 
-	"InfoCollector.cpp"
 	"ScreenCapturer.cpp"
-)
+ "LaneDetector.h" "logger.cpp")
 
- add_executable(capture "capture.cpp")
