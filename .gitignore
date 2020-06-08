@@ -9,3 +9,4 @@ images/*
 .ipynb_checkpoints/
 *.pth
 *.pkl
+*.onnx
