@@ -124,7 +124,6 @@ cv::Mat ScreenCapturer::Capture()
 
     DXGI_OUTDUPL_FRAME_INFO frame_info;
     hr = output_dupl->AcquireNextFrame(100, &frame_info, &desktop_resource);
-    // std::cout << frame_info.AccumulatedFrames << std::endl;
 
     hr = desktop_resource->QueryInterface(IID_PPV_ARGS(&acquired_desktop_image));
     desktop_resource->Release();

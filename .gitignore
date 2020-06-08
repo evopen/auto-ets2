@@ -1,7 +1,11 @@
 out/
 .vs/
 build/
-models/*
+frozen_models/*
 .idea/
 *.dll
 __pycache__/
+images/*
+.ipynb_checkpoints/
+*.pth
+*.pkl
