@@ -10,3 +10,4 @@ images/*
 *.pth
 *.pkl
 *.onnx
+3rdparty/

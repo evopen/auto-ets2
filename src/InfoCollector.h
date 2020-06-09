@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LaneDetector.h"
+#include "ObjectDetector.h"
 #include "config.h"
 
 #include <opencv2/opencv.hpp>
