@@ -11,6 +11,8 @@ add_executable(${TEST_TARGET}
     "ScreenCapturer_test.cpp"
     ${SOURCE_FILES} "LaneDetector_test.cpp")
 
+add_executable(ObjectDetectorTest "ObjectDetector_test.cpp")
+
 find_package(GTest CONFIG REQUIRED)
 target_link_libraries(${TEST_TARGET} PRIVATE GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
 
@@ -19,5 +21,10 @@ target_link_libraries(${TEST_TARGET}  PRIVATE opencv_ml opencv_dnn opencv_core o
 
 target_include_directories(${TEST_TARGET} PRIVATE "${CMAKE_SOURCE_DIR}/src")
 
+find_package(Darknet CONFIG REQUIRED)
+target_link_libraries(ObjectDetectorTest PRIVATE Darknet::dark)
+
 include(GoogleTest)
 gtest_discover_tests(${TEST_TARGET})
+
+

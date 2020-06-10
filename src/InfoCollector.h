@@ -1,16 +1,20 @@
 #pragma once
 
 #include "LaneDetector.h"
-#include "ObjectDetector.h"
 #include "config.h"
 
+#define OPENCV
+
+#include <darknet/yolo_v2_class.hpp>
 #include <opencv2/opencv.hpp>
 #include <tesseract/baseapi.h>
 
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <future>
 #include <vector>
+
 
 // assuming 16:9 pixel ratio
 class InfoCollector
@@ -43,6 +47,7 @@ public:
         speed_rect_        = GetRectFromRegion(config::speed_region);
         speed_limit_rect_  = GetRectFromRegion(config::speed_limit_region);
         cruise_speed_rect_ = GetRectFromRegion(config::cruise_control_speed_region);
+        map_rect_          = GetRectFromRegion(config::map_region);
     }
 
     void InitLaneDetector(std::filesystem::path model_path)
@@ -56,6 +61,13 @@ public:
             lane_detector = new LaneDetector(model_path);
             lane_img      = cv::Mat::zeros(36, 100, CV_8SC1);
         }
+    }
+
+    void InitObjectDetector(
+        std::filesystem::path cfg_path, std::filesystem::path weight_path, std::filesystem::path obj_name_file)
+    {
+        obj_detector = new Detector(cfg_path.string(), weight_path.string());
+        obj_names_   = ObjectNamesFromFile(obj_name_file.string());
     }
 
     void SetScreenshot(cv::Mat screenshot) { screenshot_ = screenshot; }
@@ -72,18 +84,22 @@ public:
         cruise_speed_img_ = game_window_(cruise_speed_rect_);
         cv::cvtColor(cruise_speed_img_, cruise_speed_img_, cv::COLOR_BGR2GRAY);
         cruise_speed_img_ = cv::Scalar(255) - cruise_speed_img_;
+
+        map_img_ = game_window_(map_rect_);
     }
     void ReadInfo()
     {
-        std::thread lane_detect_thread(&LaneDetector::Detect, lane_detector, drive_window_, lane_img);
+        // std::thread lane_detect_thread(&LaneDetector::Detect, lane_detector, drive_window_, lane_img);
         std::thread t1(&InfoCollector::ReadNumber, this, speed_ocr_, speed_img_, &speed_);
         std::thread t2(&InfoCollector::ReadNumber, this, speed_limit_ocr_, speed_limit_img_, &speed_limit_);
         std::thread t3(&InfoCollector::ReadNumber, this, cruise_speed_ocr_, cruise_speed_img_, &cruise_speed_);
+        auto obj_detect = std::async(&Detector::detect, obj_detector, drive_window_, 0.5f);
 
         t1.join();
         t2.join();
         t3.join();
-        lane_detect_thread.join();
+        std::vector<bbox_t> res1 = obj_detect.get();
+        // lane_detect_thread.join();
 
         cv::resize(lane_img, lane_img_large, cv::Size(800, 288), 0, 0, cv::INTER_NEAREST);
     }
@@ -141,14 +157,15 @@ private:
     cv::Rect speed_rect_;
     cv::Rect speed_limit_rect_;
     cv::Rect cruise_speed_rect_;
+    cv::Rect map_rect_;
 
     tesseract::TessBaseAPI* speed_ocr_;
     tesseract::TessBaseAPI* speed_limit_ocr_;
     tesseract::TessBaseAPI* cruise_speed_ocr_;
 
-    nvinfer1::IRuntime* runtime;
-    nvinfer1::ICudaEngine* engine;
-    nvinfer1::IExecutionContext* context;
+    std::vector<std::string> obj_names_;
+
+    Detector* obj_detector;
 
     LaneDetector* lane_detector = nullptr;
 
@@ -168,5 +185,17 @@ private:
             *number = atoi(outText.c_str());
             return true;
         }
+    }
+
+    std::vector<std::string> ObjectNamesFromFile(std::string const filename)
+    {
+        std::ifstream file(filename);
+        std::vector<std::string> file_lines;
+        if (!file.is_open())
+            return file_lines;
+        for (std::string line; file >> line;)
+            file_lines.push_back(line);
+        std::cout << "object names loaded /n";
+        return file_lines;
     }
 };

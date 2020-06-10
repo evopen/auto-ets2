@@ -11,3 +11,4 @@ images/*
 *.pkl
 *.onnx
 3rdparty/
+x64/
