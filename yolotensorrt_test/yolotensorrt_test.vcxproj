@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{29780e34-66b8-470b-acdd-4cf7867ed1b4}</ProjectGuid>
-    <RootNamespace>control</RootNamespace>
+    <ProjectGuid>{bc6473c1-d2c0-4d06-945b-5496e7c524ab}</ProjectGuid>
+    <RootNamespace>yolotensorrttest</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -116,8 +116,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>D:\whatever\TensorRT-7.0.0.11\samples\common;D:\whatever\TensorRT-7.0.0.11\include;D:\Dev\auto-ets2\src;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\whatever\TensorRT-7.0.0.11\samples\common;D:\whatever\TensorRT-7.0.0.11\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/D _CRT_SECURE_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -135,8 +135,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>D:\whatever\TensorRT-7.0.0.11\samples\common;D:\whatever\TensorRT-7.0.0.11\include;D:\Dev\auto-ets2\src;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\whatever\TensorRT-7.0.0.11\samples\common;D:\whatever\TensorRT-7.0.0.11\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/D _CRT_SECURE_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -149,16 +149,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\config.h" />
-    <ClInclude Include="..\src\InfoCollector.h" />
-    <ClInclude Include="..\src\LaneDetector.h" />
     <ClInclude Include="..\src\ObjectDetector.h" />
-    <ClInclude Include="..\src\ScreenCapturer.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\logger.cpp" />
-    <ClCompile Include="..\src\main.cpp" />
-    <ClCompile Include="..\src\ScreenCapturer.cpp" />
+    <ClCompile Include="..\..\..\whatever\TensorRT-7.0.0.11\samples\common\logger.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

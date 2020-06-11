@@ -68,6 +68,7 @@ public:
     {
         obj_detector = new Detector(cfg_path.string(), weight_path.string());
         obj_names_   = ObjectNamesFromFile(obj_name_file.string());
+        obj_img      = cv::Mat::zeros(100, 100, CV_8UC1);
     }
 
     void SetScreenshot(cv::Mat screenshot) { screenshot_ = screenshot; }
@@ -90,18 +91,21 @@ public:
     void ReadInfo()
     {
         // std::thread lane_detect_thread(&LaneDetector::Detect, lane_detector, drive_window_, lane_img);
+        auto obj_detect = std::async(&InfoCollector::detect, this, drive_window_, 0.5f, false);
+
         std::thread t1(&InfoCollector::ReadNumber, this, speed_ocr_, speed_img_, &speed_);
         std::thread t2(&InfoCollector::ReadNumber, this, speed_limit_ocr_, speed_limit_img_, &speed_limit_);
         std::thread t3(&InfoCollector::ReadNumber, this, cruise_speed_ocr_, cruise_speed_img_, &cruise_speed_);
-        auto obj_detect = std::async(&Detector::detect, obj_detector, drive_window_, 0.5f);
 
         t1.join();
         t2.join();
         t3.join();
-        std::vector<bbox_t> res1 = obj_detect.get();
+        std::vector<bbox_t> objs = obj_detect.get();
         // lane_detect_thread.join();
 
-        cv::resize(lane_img, lane_img_large, cv::Size(800, 288), 0, 0, cv::INTER_NEAREST);
+        // cv::resize(lane_img, lane_img_large, cv::Size(800, 288), 0, 0, cv::INTER_NEAREST);
+        obj_img = drive_window_.clone();
+        draw_boxes(obj_img, objs, obj_names_);
     }
 
     void LanePostprocess()
@@ -140,6 +144,7 @@ public:
     cv::Mat map_img_;
     cv::Mat lane_img;
     cv::Mat lane_img_large;
+    cv::Mat obj_img;
 
     std::array<cv::Mat, 4> lanes;
 
@@ -197,5 +202,28 @@ private:
             file_lines.push_back(line);
         std::cout << "object names loaded /n";
         return file_lines;
+    }
+
+    std::vector<bbox_t> detect(cv::Mat mat, float thresh = 0.2, bool use_mean = false)
+    {
+        if (mat.data == NULL)
+            throw std::runtime_error("Image is empty");
+        auto image_ptr = obj_detector->mat_to_image_resize(mat);
+        return obj_detector->detect_resized(*image_ptr, mat.cols, mat.rows, thresh, use_mean);
+    }
+
+    void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std::string> obj_names)
+    {
+        for (auto& i : result_vec)
+        {
+            cv::Scalar color(60, 160, 260);
+            cv::rectangle(mat_img, cv::Rect(i.x, i.y, i.w, i.h), color, 3);
+            if (obj_names.size() > i.obj_id)
+                putText(
+                    mat_img, obj_names[i.obj_id], cv::Point2f(i.x, i.y - 10), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, color);
+            if (i.track_id > 0)
+                putText(mat_img, std::to_string(i.track_id), cv::Point2f(i.x + 5, i.y + 15),
+                    cv::FONT_HERSHEY_COMPLEX_SMALL, 1, color);
+        }
     }
 };

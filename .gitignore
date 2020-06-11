@@ -12,3 +12,4 @@ images/*
 *.onnx
 3rdparty/
 x64/
+*.weights
