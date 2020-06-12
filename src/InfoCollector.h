@@ -66,9 +66,10 @@ public:
     void InitObjectDetector(
         std::filesystem::path cfg_path, std::filesystem::path weight_path, std::filesystem::path obj_name_file)
     {
-        obj_detector = new Detector(cfg_path.string(), weight_path.string());
-        obj_names_   = ObjectNamesFromFile(obj_name_file.string());
-        obj_img      = cv::Mat::zeros(100, 100, CV_8UC1);
+        obj_detector      = new Detector(cfg_path.string(), weight_path.string());
+        obj_detector->nms = 0.02;
+        obj_names_        = ObjectNamesFromFile(obj_name_file.string());
+        obj_img           = cv::Mat::zeros(100, 100, CV_8UC1);
     }
 
     void SetScreenshot(cv::Mat screenshot) { screenshot_ = screenshot; }
@@ -101,6 +102,7 @@ public:
         t2.join();
         t3.join();
         std::vector<bbox_t> objs = obj_detect.get();
+        objs = obj_detector->tracking_id(objs);
         // lane_detect_thread.join();
 
         // cv::resize(lane_img, lane_img_large, cv::Size(800, 288), 0, 0, cv::INTER_NEAREST);
