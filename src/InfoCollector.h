@@ -92,7 +92,7 @@ public:
     void ReadInfo()
     {
         // std::thread lane_detect_thread(&LaneDetector::Detect, lane_detector, drive_window_, lane_img);
-        auto obj_detect = std::async(&InfoCollector::detect, this, drive_window_, 0.5f, false);
+        auto obj_detect = std::async(&InfoCollector::detect, this, drive_window_, 0.4f, false);
 
         std::thread t1(&InfoCollector::ReadNumber, this, speed_ocr_, speed_img_, &speed_);
         std::thread t2(&InfoCollector::ReadNumber, this, speed_limit_ocr_, speed_limit_img_, &speed_limit_);

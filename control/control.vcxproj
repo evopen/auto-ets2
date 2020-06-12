@@ -117,14 +117,14 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\whatever\TensorRT-7.0.0.11\samples\common;D:\whatever\TensorRT-7.0.0.11\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Dev\auto-ets2\3rdparty\ViGEmClient\include;D:\whatever\TensorRT-7.0.0.11\samples\common;D:\whatever\TensorRT-7.0.0.11\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/D _CRT_SECURE_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>D:\whatever\TensorRT-7.0.0.11\lib;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cudart.lib;nvinfer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cudart.lib;nvinfer.lib;Setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -149,13 +149,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\3rdparty\ViGEmClient\include\ViGEm\Client.h" />
     <ClInclude Include="..\src\config.h" />
     <ClInclude Include="..\src\InfoCollector.h" />
+    <ClInclude Include="..\src\Input.h" />
     <ClInclude Include="..\src\LaneDetector.h" />
     <ClInclude Include="..\src\ObjectDetector.h" />
     <ClInclude Include="..\src\ScreenCapturer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\3rdparty\ViGEmClient\src\ViGEmClient.cpp" />
     <ClCompile Include="..\src\logger.cpp" />
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\ScreenCapturer.cpp" />

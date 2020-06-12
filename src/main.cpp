@@ -63,13 +63,13 @@ int main()
         collector.CropToGameWindow(rect);
         collector.CropRegion();
         collector.ReadInfo();
-        //collector.LanePostprocess();
+        // collector.LanePostprocess();
         cv::imshow("game", collector.game_window_);
-        //cv::imshow("drive", collector.drive_window_);
+        // cv::imshow("drive", collector.drive_window_);
         cv::imshow("speed", collector.speed_img_);
         cv::imshow("limit", collector.speed_limit_img_);
         cv::imshow("cruise", collector.cruise_speed_img_);
-        //cv::imshow("lane", collector.lane_img_large);
+        // cv::imshow("lane", collector.lane_img_large);
         cv::imshow("objs", collector.obj_img);
         cv::resizeWindow("speed", 300, 50);
         cv::resizeWindow("limit", 300, 50);
