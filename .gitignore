@@ -10,6 +10,6 @@ images/*
 *.pth
 *.pkl
 *.onnx
-3rdparty/
+3rdparty/onnx*
 x64/
 *.weights
