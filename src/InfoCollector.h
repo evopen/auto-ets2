@@ -1,6 +1,6 @@
 #pragma once
 
-#include "LaneDetector.h"
+#include "LaneDetector_pt.h"
 #include "config.h"
 
 #define OPENCV
@@ -58,8 +58,7 @@ public:
         }
         else
         {
-            lane_detector = new LaneDetector(model_path);
-            lane_img      = cv::Mat::zeros(36, 100, CV_8SC1);
+            lane_detector = new LaneDetector(model_path, 976, 208, {103.939, 116.779, 123.68}, {1, 1, 1});
         }
     }
 
@@ -91,8 +90,9 @@ public:
     }
     void ReadInfo()
     {
-        // std::thread lane_detect_thread(&LaneDetector::Detect, lane_detector, drive_window_, lane_img);
-        auto obj_detect = std::async(&InfoCollector::detect, this, drive_window_, 0.4f, false);
+        std::thread lane_detect_thread(&LaneDetector::Detect, lane_detector, drive_window_.clone(), &lane_img);
+
+        auto obj_detect = std::async(&InfoCollector::detect, this, drive_window_, 0.5f, false);
 
         std::thread t1(&InfoCollector::ReadNumber, this, speed_ocr_, speed_img_, &speed_);
         std::thread t2(&InfoCollector::ReadNumber, this, speed_limit_ocr_, speed_limit_img_, &speed_limit_);
@@ -102,8 +102,8 @@ public:
         t2.join();
         t3.join();
         std::vector<bbox_t> objs = obj_detect.get();
-        objs = obj_detector->tracking_id(objs);
-        // lane_detect_thread.join();
+        objs                     = obj_detector->tracking_id(objs);
+        lane_detect_thread.join();
 
         // cv::resize(lane_img, lane_img_large, cv::Size(800, 288), 0, 0, cv::INTER_NEAREST);
         obj_img = drive_window_.clone();
