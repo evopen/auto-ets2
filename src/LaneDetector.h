@@ -7,10 +7,10 @@
 
 #include <filesystem>
 
-class LaneDetector
+class LaneDetectorTRT
 {
 public:
-    LaneDetector(std::filesystem::path model_path)
+    LaneDetectorTRT(std::filesystem::path model_path)
     {
         runtime                 = nvinfer1::createInferRuntime(gLogger.getTRTLogger());
         auto engine_bytes       = ReadFile(model_path);
