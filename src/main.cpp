@@ -50,7 +50,8 @@ int main()
         cv::namedWindow("speed");
         cv::namedWindow("limit");
         cv::namedWindow("cruise");
-        cv::namedWindow("lane");
+        cv::namedWindow("lane_erf");
+        cv::namedWindow("lane_scnn");
 
         std::string speed_window_title        = "speed";
         std::string speed_limit_window_title  = "limit";
@@ -64,13 +65,19 @@ int main()
             collector.CropToGameWindow(rect);
             collector.CropRegion();
             collector.ReadInfo();
-            // collector.LanePostprocess();
+            collector.MergeLaneResult();
             cv::imshow("game", collector.game_window_);
             // cv::imshow("drive", collector.drive_window_);
             cv::imshow("speed", collector.speed_img_);
             cv::imshow("limit", collector.speed_limit_img_);
             cv::imshow("cruise", collector.cruise_speed_img_);
-            cv::imshow("lane", collector.lane_img * 50);
+            cv::imshow("lane_erf", collector.erf_lane_img * 50);
+            // cv::imshow("lane_scnn", collector.scnn_lane_img);
+            // cv::imshow("lane1", collector.lanes[0]);
+            // cv::imshow("lane2", collector.lanes[1]);
+            // cv::imshow("lane3", collector.lanes[2]);
+            // cv::imshow("lane4", collector.lanes[3]);
+            //cv::imshow("all", collector.all_lanes);
             cv::imshow("objs", collector.obj_img);
             cv::resizeWindow("speed", 300, 50);
             cv::resizeWindow("limit", 300, 50);

@@ -18,7 +18,7 @@ public:
         module_.to(at::kCUDA, at::kHalf);
     }
 
-    void Detect(cv::Mat in_img, cv::Mat* out_img)
+    void Detect(cv::Mat in_img, cv::Mat out_img)
     {
         cv::resize(in_img, in_img, cv::Size(input_width_, input_height_));
 
@@ -37,8 +37,12 @@ public:
         auto seg_img =
             module_.forward({input_tensor}).toTuple()->elements()[0].toTensor()[0].argmax(0).to(at::kByte).to(at::kCPU);
 
-        *out_img = cv::Mat(input_height_, input_width_, CV_8UC1, seg_img.data_ptr());
+        std::memcpy(out_img.data, seg_img.data_ptr(), input_height_ * input_width_ * sizeof(uint8_t));
+
+        ArgMaxPostprocess(out_img);
     }
+
+    std::array<cv::Mat, 4> lanes;
 
 private:
     cv::Size input_size_;
@@ -47,4 +51,14 @@ private:
     int input_width_;
     std::array<float, 3> mean_;
     std::array<float, 3> std_;
+
+
+    void ArgMaxPostprocess(cv::Mat img)
+    {
+        cv::Mat tmp[4];
+        cv::inRange(img, cv::Scalar(1), cv::Scalar(1), lanes[0]);
+        cv::inRange(img, cv::Scalar(2), cv::Scalar(2), lanes[1]);
+        cv::inRange(img, cv::Scalar(3), cv::Scalar(3), lanes[2]);
+        cv::inRange(img, cv::Scalar(4), cv::Scalar(4), lanes[3]);
+    }
 };

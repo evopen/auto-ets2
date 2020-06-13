@@ -41,11 +41,13 @@ public:
 
         context->executeV2(io_buffers);
 
-        cudaMemcpy(out_img.data, io_buffers[output_seg_pred_index],
-            (height / 8) * (width / 8) * sizeof(int8_t), cudaMemcpyDeviceToHost);
-
-        
+        cudaMemcpy(out_img.data, io_buffers[output_seg_pred_index], (height / 8) * (width / 8) * sizeof(int8_t),
+            cudaMemcpyDeviceToHost);
+        ArgMaxPostprocess(out_img);
     }
+
+    std::array<cv::Mat, 4> lanes;
+
 
 private:
     nvinfer1::IRuntime* runtime;
@@ -62,6 +64,7 @@ private:
     const int width  = 800;
     const int height = 288;
 
+
     void* io_buffers[3];
 
     std::vector<char> ReadFile(const std::filesystem::path& file_path)
@@ -74,5 +77,14 @@ private:
         buffer.resize(length);
         file.read(buffer.data(), length);
         return buffer;
+    }
+
+    void ArgMaxPostprocess(cv::Mat img)
+    {
+        cv::Mat tmp[4];
+        cv::inRange(img, cv::Scalar(32), cv::Scalar(32), lanes[0]);
+        cv::inRange(img, cv::Scalar(64), cv::Scalar(64), lanes[1]);
+        cv::inRange(img, cv::Scalar(95), cv::Scalar(95), lanes[2]);
+        cv::inRange(img, cv::Scalar(127), cv::Scalar(127), lanes[3]);
     }
 };

@@ -12,7 +12,10 @@ int main()
         std::cout << count++ << std::endl;
         detector.Detect(img.clone(), out_img);
         cv::imshow("original", img);
-        cv::imshow("seg", out_img * 50);
+        cv::imshow("seg", detector.lanes[0]);
+        cv::imshow("seg1", detector.lanes[1]);
+        cv::imshow("seg2", detector.lanes[2]);
+        cv::imshow("seg3", detector.lanes[3]);
         if (cv::waitKey(1) == 27)
             break;
     }
