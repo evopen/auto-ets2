@@ -135,6 +135,8 @@ cv::Mat ScreenCapturer::Capture()
     UINT subresource = D3D11CalcSubresource(0, 0, 0);
     hr               = device_context_->Map(dest_image, subresource, D3D11_MAP_READ_WRITE, 0, &resource);
 
-    return cv::Mat(
+    auto ss = cv::Mat(
         output_dupl_desc.ModeDesc.Height, output_dupl_desc.ModeDesc.Width, CV_8UC4, resource.pData, resource.RowPitch);
+    cv::cvtColor(ss, ss, cv::COLOR_RGBA2RGB);
+    return ss;
 }
