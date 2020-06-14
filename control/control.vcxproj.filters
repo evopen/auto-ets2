@@ -39,6 +39,9 @@
     <ClInclude Include="..\src\LaneDetector_pt.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\Control.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\logger.cpp">

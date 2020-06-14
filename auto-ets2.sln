@@ -13,6 +13,14 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pytorch_test", "pytorch_tes
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tensorrt_test", "tensorrt_test\tensorrt_test.vcxproj", "{9A51EB58-8272-42A7-9A43-87E9ACD9AB62}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ets2_sampler", "ets2_sampler\ets2_sampler.vcxproj", "{98B0075A-4869-4414-8400-BF0F342320FB}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mouse_ctrl_test", "mouse_ctrl_test\mouse_ctrl_test.vcxproj", "{5867C6B6-F52E-4FF2-B097-E9EA8F96B5C6}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "controller_test", "controller_test\controller_test.vcxproj", "{971FE3B3-7EED-41FC-AB8C-816FB3888FCE}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "keyboard_test", "keyboard_test\keyboard_test.vcxproj", "{24E38A24-4668-4BD4-A435-192DE9A592F6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -61,6 +69,38 @@ Global
 		{9A51EB58-8272-42A7-9A43-87E9ACD9AB62}.Release|x64.Build.0 = Release|x64
 		{9A51EB58-8272-42A7-9A43-87E9ACD9AB62}.Release|x86.ActiveCfg = Release|Win32
 		{9A51EB58-8272-42A7-9A43-87E9ACD9AB62}.Release|x86.Build.0 = Release|Win32
+		{98B0075A-4869-4414-8400-BF0F342320FB}.Debug|x64.ActiveCfg = Debug|x64
+		{98B0075A-4869-4414-8400-BF0F342320FB}.Debug|x64.Build.0 = Debug|x64
+		{98B0075A-4869-4414-8400-BF0F342320FB}.Debug|x86.ActiveCfg = Debug|Win32
+		{98B0075A-4869-4414-8400-BF0F342320FB}.Debug|x86.Build.0 = Debug|Win32
+		{98B0075A-4869-4414-8400-BF0F342320FB}.Release|x64.ActiveCfg = Release|x64
+		{98B0075A-4869-4414-8400-BF0F342320FB}.Release|x64.Build.0 = Release|x64
+		{98B0075A-4869-4414-8400-BF0F342320FB}.Release|x86.ActiveCfg = Release|Win32
+		{98B0075A-4869-4414-8400-BF0F342320FB}.Release|x86.Build.0 = Release|Win32
+		{5867C6B6-F52E-4FF2-B097-E9EA8F96B5C6}.Debug|x64.ActiveCfg = Debug|x64
+		{5867C6B6-F52E-4FF2-B097-E9EA8F96B5C6}.Debug|x64.Build.0 = Debug|x64
+		{5867C6B6-F52E-4FF2-B097-E9EA8F96B5C6}.Debug|x86.ActiveCfg = Debug|Win32
+		{5867C6B6-F52E-4FF2-B097-E9EA8F96B5C6}.Debug|x86.Build.0 = Debug|Win32
+		{5867C6B6-F52E-4FF2-B097-E9EA8F96B5C6}.Release|x64.ActiveCfg = Release|x64
+		{5867C6B6-F52E-4FF2-B097-E9EA8F96B5C6}.Release|x64.Build.0 = Release|x64
+		{5867C6B6-F52E-4FF2-B097-E9EA8F96B5C6}.Release|x86.ActiveCfg = Release|Win32
+		{5867C6B6-F52E-4FF2-B097-E9EA8F96B5C6}.Release|x86.Build.0 = Release|Win32
+		{971FE3B3-7EED-41FC-AB8C-816FB3888FCE}.Debug|x64.ActiveCfg = Debug|x64
+		{971FE3B3-7EED-41FC-AB8C-816FB3888FCE}.Debug|x64.Build.0 = Debug|x64
+		{971FE3B3-7EED-41FC-AB8C-816FB3888FCE}.Debug|x86.ActiveCfg = Debug|Win32
+		{971FE3B3-7EED-41FC-AB8C-816FB3888FCE}.Debug|x86.Build.0 = Debug|Win32
+		{971FE3B3-7EED-41FC-AB8C-816FB3888FCE}.Release|x64.ActiveCfg = Release|x64
+		{971FE3B3-7EED-41FC-AB8C-816FB3888FCE}.Release|x64.Build.0 = Release|x64
+		{971FE3B3-7EED-41FC-AB8C-816FB3888FCE}.Release|x86.ActiveCfg = Release|Win32
+		{971FE3B3-7EED-41FC-AB8C-816FB3888FCE}.Release|x86.Build.0 = Release|Win32
+		{24E38A24-4668-4BD4-A435-192DE9A592F6}.Debug|x64.ActiveCfg = Debug|x64
+		{24E38A24-4668-4BD4-A435-192DE9A592F6}.Debug|x64.Build.0 = Debug|x64
+		{24E38A24-4668-4BD4-A435-192DE9A592F6}.Debug|x86.ActiveCfg = Debug|Win32
+		{24E38A24-4668-4BD4-A435-192DE9A592F6}.Debug|x86.Build.0 = Debug|Win32
+		{24E38A24-4668-4BD4-A435-192DE9A592F6}.Release|x64.ActiveCfg = Release|x64
+		{24E38A24-4668-4BD4-A435-192DE9A592F6}.Release|x64.Build.0 = Release|x64
+		{24E38A24-4668-4BD4-A435-192DE9A592F6}.Release|x86.ActiveCfg = Release|Win32
+		{24E38A24-4668-4BD4-A435-192DE9A592F6}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

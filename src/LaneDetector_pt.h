@@ -16,6 +16,7 @@ public:
         module_              = torch::jit::load(filename);
         std::cout << "module loaded" << std::endl;
         module_.to(at::kCUDA, at::kHalf);
+        buffer_ = cv::Mat::zeros(input_height_, input_width_, CV_8UC1);
     }
 
     void Detect(cv::Mat in_img, cv::Mat out_img)
@@ -34,10 +35,15 @@ public:
 
         input_tensor = input_tensor.to(at::kCUDA, at::kHalf);
 
-        auto seg_img =
-            module_.forward({input_tensor}).toTuple()->elements()[0].toTensor()[0].argmax(0).to(at::kByte).to(at::kCPU);
+        auto tuple = module_.forward({input_tensor}).toTuple();
 
-        std::memcpy(out_img.data, seg_img.data_ptr(), input_height_ * input_width_ * sizeof(uint8_t));
+        auto seg_img = tuple->elements()[0].toTensor()[0].argmax(0).to(at::kByte).to(at::kCPU);
+        auto prob    = tuple->elements()[1].toTensor().to(at::kCPU);
+
+
+        std::memcpy(buffer_.data, seg_img.data_ptr(), input_height_ * input_width_ * sizeof(uint8_t));
+
+        cv::resize(buffer_, out_img, cv::Size(400, 400));
 
         ArgMaxPostprocess(out_img);
     }
@@ -51,6 +57,7 @@ private:
     int input_width_;
     std::array<float, 3> mean_;
     std::array<float, 3> std_;
+    cv::Mat buffer_;
 
 
     void ArgMaxPostprocess(cv::Mat img)

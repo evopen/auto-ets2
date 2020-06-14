@@ -1,4 +1,6 @@
+#include "Control.h"
 #include "InfoCollector.h"
+#include "Input.h"
 #include "ScreenCapturer.h"
 
 #include <Windows.h>
@@ -7,8 +9,10 @@
 int main()
 {
     LoadLibraryA("torch_cuda.dll");
+    SetProcessDPIAware();
     try
     {
+        Input input;
 
         HWND hwnd         = FindWindowA(0, "Euro Truck Simulator 2");
         auto window_style = GetWindowLongPtrA(hwnd, GWL_STYLE);
@@ -37,25 +41,27 @@ int main()
         cv::Rect rect(cv::Point(start_point.x, start_point.y), cv::Size(rcClient.right, rcClient.bottom));
 
         InfoCollector collector(rcClient.right, rcClient.bottom);
-        collector.InitCollector();
-        collector.InitLaneDetector("D:/DHH/Downloads/erf_net.pt");
-        collector.InitObjectDetector("D:/Dev/auto-ets2/weights/yolov3.cfg", "D:/Dev/auto-ets2/weights/yolov3.weights",
-            "D:/Dev/auto-ets2/weights/coco.names");
-
         ScreenCapturer capturer;
+        Control control(&input, &collector);
+
+        // std::thread init_obj_detector_thread(&InfoCollector::InitObjectDetector, &collector,
+        //    "D:/Dev/auto-ets2/weights/yolov3.cfg", "D:/Dev/auto-ets2/weights/yolov3.weights",
+        //    "D:/Dev/auto-ets2/weights/coco.names");
+        std::thread init_collector_thread(&InfoCollector::InitCollector, &collector);
+        std::thread init_lane_detector_thread(
+            &InfoCollector::InitLaneDetector, &collector, "D:/DHH/Downloads/erf_net.pt");
+        std::thread init_capturer_thread(&ScreenCapturer::Init, &capturer);
+
+        init_collector_thread.join();
+        init_lane_detector_thread.join();
+        // init_obj_detector_thread.join();
+        init_capturer_thread.join();
+
         cv::Mat screenshot;
-        capturer.Init();
 
-        cv::namedWindow("game");
-        cv::namedWindow("speed");
-        cv::namedWindow("limit");
-        cv::namedWindow("cruise");
-        cv::namedWindow("lane_erf");
-        cv::namedWindow("lane_scnn");
-
-        std::string speed_window_title        = "speed";
-        std::string speed_limit_window_title  = "limit";
-        std::string cruise_speed_window_title = "cruise";
+        std::string speed_window_title       = "speed";
+        std::string speed_limit_window_title = "limit";
+        // std::string cruise_speed_window_title = "cruise";
 
         std::cout << "here1" << std::endl;
         while (true)
@@ -66,26 +72,37 @@ int main()
             collector.CropRegion();
             collector.ReadInfo();
             collector.MergeLaneResult();
-            cv::imshow("game", collector.game_window_);
+            collector.WarpLane();
+
+
+            // collector.HoughLane();
+
+            control.Process();
+
+            // cv::imshow("game", collector.game_window_);
             // cv::imshow("drive", collector.drive_window_);
             cv::imshow("speed", collector.speed_img_);
             cv::imshow("limit", collector.speed_limit_img_);
-            cv::imshow("cruise", collector.cruise_speed_img_);
-            cv::imshow("lane_erf", collector.erf_lane_img * 50);
+            // cv::imshow("cruise", collector.cruise_speed_img_);
+            // cv::imshow("lane_erf", collector.erf_lane_img * 50);
             // cv::imshow("lane_scnn", collector.scnn_lane_img);
             // cv::imshow("lane1", collector.lanes[0]);
             // cv::imshow("lane2", collector.lanes[1]);
+            cv::imshow("lane1", collector.warp_lanes[1]);
+            cv::imshow("lane2", collector.warp_lanes[2]);
             // cv::imshow("lane3", collector.lanes[2]);
             // cv::imshow("lane4", collector.lanes[3]);
-            //cv::imshow("all", collector.all_lanes);
-            cv::imshow("objs", collector.obj_img);
+            // cv::imshow("all", collector.all_lanes);
+            // cv::imshow("warp", collector.lane_warp_img_);
+            // cv::imshow("hough", collector.lane_hough_img_);
+            // cv::imshow("objs", collector.obj_img);
             cv::resizeWindow("speed", 300, 50);
             cv::resizeWindow("limit", 300, 50);
-            cv::resizeWindow("cruise", 300, 50);
+            // cv::resizeWindow("cruise", 300, 50);
 
             cv::setWindowTitle(speed_window_title, "speed" + std::to_string(collector.speed_));
             cv::setWindowTitle(speed_limit_window_title, "limit" + std::to_string(collector.speed_limit_));
-            cv::setWindowTitle(cruise_speed_window_title, "cruise" + std::to_string(collector.cruise_speed_));
+            // cv::setWindowTitle(cruise_speed_window_title, "cruise" + std::to_string(collector.cruise_speed_));
 
             if (cv::waitKey(1) == 27)
                 break;

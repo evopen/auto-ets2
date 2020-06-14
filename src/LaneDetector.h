@@ -41,9 +41,20 @@ public:
 
         context->executeV2(io_buffers);
 
-        cudaMemcpy(out_img.data, io_buffers[output_seg_pred_index], (height / 8) * (width / 8) * sizeof(int8_t),
-            cudaMemcpyDeviceToHost);
+        cudaMemcpy(output_seg_pred_blob.data, io_buffers[output_seg_pred_index],
+            (height / 8) * (width / 8) * sizeof(int8_t), cudaMemcpyDeviceToHost);
+
+        output_seg_pred_blob.convertTo(out_img, CV_8UC1);
+
+        cv::resize(out_img, out_img, cv::Size(400, 400));
         ArgMaxPostprocess(out_img);
+    }
+
+    ~LaneDetectorTRT()
+    {
+        cudaFree(&io_buffers[input_index]);
+        cudaFree(&io_buffers[output_seg_pred_index]);
+        cudaFree(&io_buffers[output_exist_pred_index]);
     }
 
     std::array<cv::Mat, 4> lanes;
@@ -63,6 +74,8 @@ private:
 
     const int width  = 800;
     const int height = 288;
+
+    cv::Mat buffer;
 
 
     void* io_buffers[3];

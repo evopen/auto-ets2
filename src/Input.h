@@ -44,6 +44,12 @@ public:
         ret_             = vigem_target_x360_update(client_, x360_, report_);
     }
 
+    void SetThrottleAndBrake(float power)
+    {
+        report_.sThumbLY = power * std::numeric_limits<short>::max();
+        ret_             = vigem_target_x360_update(client_, x360_, report_);
+    }
+
 private:
     PVIGEM_CLIENT client_;
     PVIGEM_TARGET x360_;

@@ -19,8 +19,8 @@
 #include <future>
 #include <vector>
 
-const int lane_view_height = 300;
-const int lane_view_width  = 500;
+const int lane_view_height = 400;
+const int lane_view_width  = 400;
 
 
 // assuming 16:9 pixel ratio
@@ -29,24 +29,24 @@ class InfoCollector
 public:
     InfoCollector(int width, int height) : width_(width), height_(height)
     {
-        speed_        = 0;
-        speed_limit_  = 0;
-        cruise_speed_ = 0;
+        speed_       = 0;
+        speed_limit_ = 0;
+        // cruise_speed_ = 0;
 
-        speed_ocr_        = new tesseract::TessBaseAPI();
-        speed_limit_ocr_  = new tesseract::TessBaseAPI();
-        cruise_speed_ocr_ = new tesseract::TessBaseAPI();
+        speed_ocr_       = new tesseract::TessBaseAPI();
+        speed_limit_ocr_ = new tesseract::TessBaseAPI();
+        // cruise_speed_ocr_ = new tesseract::TessBaseAPI();
 
         speed_ocr_->Init(NULL, "eng", tesseract::OEM_LSTM_ONLY);
         speed_limit_ocr_->Init(NULL, "eng", tesseract::OEM_LSTM_ONLY);
-        cruise_speed_ocr_->Init(NULL, "eng", tesseract::OEM_LSTM_ONLY);
+        // cruise_speed_ocr_->Init(NULL, "eng", tesseract::OEM_LSTM_ONLY);
 
         speed_ocr_->SetVariable("tessedit_char_whitelist", "0123456789");
         speed_ocr_->SetPageSegMode(tesseract::PSM_SINGLE_WORD);
         speed_limit_ocr_->SetVariable("tessedit_char_whitelist", "0123456789");
         speed_limit_ocr_->SetPageSegMode(tesseract::PSM_SINGLE_WORD);
-        cruise_speed_ocr_->SetVariable("tessedit_char_whitelist", "0123456789");
-        cruise_speed_ocr_->SetPageSegMode(tesseract::PSM_SINGLE_WORD);
+        // cruise_speed_ocr_->SetVariable("tessedit_char_whitelist", "0123456789");
+        // cruise_speed_ocr_->SetPageSegMode(tesseract::PSM_SINGLE_WORD);
     }
     void InitCollector()
     {
@@ -55,6 +55,56 @@ public:
         speed_limit_rect_  = GetRectFromRegion(config::speed_limit_region);
         cruise_speed_rect_ = GetRectFromRegion(config::cruise_control_speed_region);
         map_rect_          = GetRectFromRegion(config::map_region);
+        right_mirror_rect_ = GetRectFromRegion(config::right_mirror_region);
+        left_mirror_rect_  = GetRectFromRegion(config::left_mirror_region);
+
+        {
+            std::array<cv::Point2f, 4> original_points;
+            std::array<cv::Point2f, 4> new_points;
+            original_points[0] = {300 / 2, 700 / 2};
+            original_points[1] = {745 / 2, 700 / 2};
+            original_points[2] = {450 / 2, 400 / 2};
+            original_points[3] = {600 / 2, 400 / 2};
+            new_points[0]      = {200 / 2, 800 / 2};
+            new_points[1]      = {600 / 2, 800 / 2};
+            new_points[2]      = {300 / 2, 100 / 2};
+            new_points[3]      = {900 / 2, 100 / 2};
+
+            lane_warp_mat_ = cv::getPerspectiveTransform(original_points.data(), new_points.data());
+
+            lane_warp_img_  = cv::Mat::zeros(lane_view_height, lane_view_width, CV_8UC1);
+            lane_hough_img_ = cv::Mat::zeros(lane_view_height, lane_view_width, CV_8UC1);
+        }
+
+        {
+            std::array<cv::Point2f, 4> original_points;
+            std::array<cv::Point2f, 4> new_points;
+            original_points[0] = {55, 400};
+            original_points[1] = {130, 400};
+            original_points[2] = {100, 250};
+            original_points[3] = {150, 250};
+            new_points[0]      = {100, 400};
+            new_points[1]      = {300, 400};
+            new_points[2]      = {100, 100};
+            new_points[3]      = {300, 100};
+
+            lane_warp_mat[1] = cv::getPerspectiveTransform(original_points.data(), new_points.data());
+        }
+
+        {
+            std::array<cv::Point2f, 4> original_points;
+            std::array<cv::Point2f, 4> new_points;
+            original_points[0] = {205, 400};
+            original_points[1] = {270, 400};
+            original_points[2] = {150, 250};
+            original_points[3] = {200, 250};
+            new_points[0]      = {100, 400};
+            new_points[1]      = {300, 400};
+            new_points[2]      = {100, 100};
+            new_points[3]      = {300, 100};
+
+            lane_warp_mat[2] = cv::getPerspectiveTransform(original_points.data(), new_points.data());
+        }
     }
 
     void InitLaneDetector(std::filesystem::path model_path)
@@ -66,7 +116,7 @@ public:
         else
         {
             erf_lane_detector = new LaneDetector(model_path, 976, 208, {103.939, 116.779, 123.68}, {1, 1, 1});
-            erf_lane_img      = cv::Mat::zeros(208, 976, CV_8UC1);
+            erf_lane_img      = cv::Mat::zeros(lane_view_height, lane_view_width, CV_8UC1);
         }
 
         if (scnn_lane_detector)
@@ -77,7 +127,7 @@ public:
         {
             scnn_lane_detector =
                 new LaneDetectorTRT("D:/Dev/auto-ets2/frozen_models/6.6_2060_fp32_288.800_36.100_explicitBatch.trt");
-            scnn_lane_img = cv::Mat::zeros(36, 100, CV_8SC1);
+            scnn_lane_img = cv::Mat::zeros(lane_view_height, lane_view_width, CV_8SC1);
         }
 
         for (int i = 0; i < lanes.size(); i++)
@@ -93,6 +143,8 @@ public:
         obj_detector->nms = 0.02;
         obj_names_        = ObjectNamesFromFile(obj_name_file.string());
         obj_img           = cv::Mat::zeros(100, 100, CV_8UC1);
+
+        enable_obj_detect = true;
     }
 
     void SetScreenshot(cv::Mat screenshot) { screenshot_ = screenshot; }
@@ -106,33 +158,54 @@ public:
         speed_limit_img_ = game_window_(speed_limit_rect_);
         cv::cvtColor(speed_limit_img_, speed_limit_img_, cv::COLOR_BGR2GRAY);
 
-        cruise_speed_img_ = game_window_(cruise_speed_rect_);
-        cv::cvtColor(cruise_speed_img_, cruise_speed_img_, cv::COLOR_BGR2GRAY);
-        cruise_speed_img_ = cv::Scalar(255) - cruise_speed_img_;
+        // cruise_speed_img_ = game_window_(cruise_speed_rect_);
+        // cv::cvtColor(cruise_speed_img_, cruise_speed_img_, cv::COLOR_BGR2GRAY);
+        // cruise_speed_img_ = cv::Scalar(255) - cruise_speed_img_;
 
-        map_img_ = game_window_(map_rect_);
+        map_img_           = game_window_(map_rect_);
+        wing_mirror_left_  = game_window_(left_mirror_rect_);
+        wing_mirror_right_ = game_window_(right_mirror_rect_);
     }
     void ReadInfo()
     {
         std::thread erf_thread(&LaneDetector::Detect, erf_lane_detector, drive_window_.clone(), erf_lane_img);
         std::thread scnn_thread(&LaneDetectorTRT::Detect, scnn_lane_detector, drive_window_.clone(), scnn_lane_img);
 
-        auto obj_detect = std::async(&InfoCollector::detect, this, drive_window_, 0.5f, false);
+        std::future<std::vector<bbox_t>> obj_detect;
+        std::future<std::vector<bbox_t>> obj_detect_left;
+        if (enable_obj_detect)
+        {
+            obj_detect      = std::async(&InfoCollector::detect, this, drive_window_, 0.5f, false);
+            obj_detect_left = std::async(&InfoCollector::detect, this, drive_window_, 0.5f, false);
+        }
 
-        std::thread t1(&InfoCollector::ReadNumber, this, speed_ocr_, speed_img_, &speed_);
-        std::thread t2(&InfoCollector::ReadNumber, this, speed_limit_ocr_, speed_limit_img_, &speed_limit_);
-        std::thread t3(&InfoCollector::ReadNumber, this, cruise_speed_ocr_, cruise_speed_img_, &cruise_speed_);
+        std::thread t1(&InfoCollector::ReadNumber, this, speed_ocr_, speed_img_, &speed_, true);
+        std::thread t2(&InfoCollector::ReadNumber, this, speed_limit_ocr_, speed_limit_img_, &speed_limit_, false);
+        // std::thread t3(&InfoCollector::ReadNumber, this, cruise_speed_ocr_, cruise_speed_img_, &cruise_speed_);
 
         t1.join();
         t2.join();
-        t3.join();
-        std::vector<bbox_t> objs = obj_detect.get();
-        objs                     = obj_detector->tracking_id(objs);
+        // t3.join();
+        if (enable_obj_detect)
+        {
+            std::vector<bbox_t> objs = obj_detect.get();
+            objs                     = obj_detector->tracking_id(objs);
+            size_t obj_count         = objs.size();
+            for (int i = 0; i < obj_count; ++i)
+            {
+                if (objs[i].obj_id != 2 && objs[i].obj_id != 5 && objs[i].obj_id != 6 && objs[i].obj_id != 7
+                    && objs[i].obj_id != 9)
+                {
+                    objs.erase(objs.begin() + i);
+                    obj_count--;
+                    i--;
+                }
+            }
+            obj_img = drive_window_.clone();
+            draw_boxes(obj_img, objs, obj_names_);
+        }
         erf_thread.join();
         scnn_thread.join();
-
-        obj_img = drive_window_.clone();
-        draw_boxes(obj_img, objs, obj_names_);
     }
 
     void MergeLaneResult()
@@ -167,11 +240,36 @@ public:
         cv::bitwise_or(lanes[3], all_lanes, all_lanes);
     }
 
+    void WarpLane()
+    {
+        cv::warpPerspective(all_lanes, lane_warp_img_, lane_warp_mat_, cv::Size(lane_view_width, lane_view_height));
+        cv::dilate(lane_warp_img_, lane_warp_img_, cv::Mat::ones(45, 45, CV_8SC1));
+        cv::erode(lane_warp_img_, lane_warp_img_, cv::Mat::ones(45, 45, CV_8SC1));
+
+        cv::warpPerspective(lanes[1], warp_lanes[1], lane_warp_mat[1], cv::Size(lane_view_width, lane_view_height));
+        cv::dilate(warp_lanes[1], warp_lanes[1], cv::Mat::ones(10, 50, CV_8SC1));
+        cv::erode(warp_lanes[1], warp_lanes[1], cv::Mat::ones(60, 45, CV_8SC1));
+
+        cv::warpPerspective(lanes[2], warp_lanes[2], lane_warp_mat[2], cv::Size(lane_view_width, lane_view_height));
+        cv::dilate(warp_lanes[2], warp_lanes[2], cv::Mat::ones(10, 50, CV_8SC1));
+        cv::erode(warp_lanes[2], warp_lanes[2], cv::Mat::ones(60, 45, CV_8SC1));
+    }
+
+    void HoughLane()
+    {
+        std::vector<cv::Vec4i> lines;
+        cv::HoughLinesP(lane_warp_img_, lines, 1, CV_PI / 180, 200, 100, 50);
+        lane_hough_img_ = 0;
+        for (const auto& line : lines)
+        {
+            cv::line(lane_hough_img_, cv::Point(line[0], line[1]), {line[2], line[3]}, cv::Scalar(255));
+        }
+    }
 
 public:
     int speed_;
     int speed_limit_;
-    int cruise_speed_;
+    // int cruise_speed_;
 
     int width_;
     int height_;
@@ -184,7 +282,7 @@ public:
     cv::Mat wing_mirror_right_;
     cv::Mat speed_limit_img_;
     cv::Mat speed_img_;
-    cv::Mat cruise_speed_img_;
+    // cv::Mat cruise_speed_img_;
     cv::Mat map_img_;
     cv::Mat erf_lane_img;
     cv::Mat scnn_lane_img;
@@ -193,7 +291,16 @@ public:
 
 
     std::array<cv::Mat, 4> lanes;
+    std::array<cv::Mat, 4> warp_lanes;
+    std::array<cv::Mat, 4> lane_warp_mat;
+
     cv::Mat all_lanes;
+
+    cv::Mat lane_warp_img_;
+    cv::Mat lane_warp_mat_;
+    cv::Mat lane_hough_img_;
+
+    bool enable_obj_detect = false;
 
     cv::Rect GetRectFromRegion(const float region[4])
     {
@@ -210,10 +317,12 @@ private:
     cv::Rect speed_limit_rect_;
     cv::Rect cruise_speed_rect_;
     cv::Rect map_rect_;
+    cv::Rect right_mirror_rect_;
+    cv::Rect left_mirror_rect_;
 
     tesseract::TessBaseAPI* speed_ocr_;
     tesseract::TessBaseAPI* speed_limit_ocr_;
-    tesseract::TessBaseAPI* cruise_speed_ocr_;
+    // tesseract::TessBaseAPI* cruise_speed_ocr_;
 
     std::vector<std::string> obj_names_;
 
@@ -223,7 +332,7 @@ private:
 
     LaneDetector* erf_lane_detector = nullptr;
 
-    bool ReadNumber(tesseract::TessBaseAPI* ocr, cv::Mat img, int* number)
+    bool ReadNumber(tesseract::TessBaseAPI* ocr, cv::Mat img, int* number, bool steady = false)
     {
         ocr->SetImage(img.data, img.size().width, img.size().height, img.channels(), img.step1());
         ocr->SetSourceResolution(300);
@@ -236,7 +345,18 @@ private:
         }
         else
         {
-            *number = atoi(outText.c_str());
+            int new_reading = atoi(outText.c_str());
+            if (steady)
+            {
+                if (std::abs(new_reading - *number) > 15)
+                    return false;
+                else
+                    *number = new_reading;
+            }
+            else
+            {
+                *number = new_reading;
+            }
             return true;
         }
     }

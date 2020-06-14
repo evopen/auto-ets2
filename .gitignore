@@ -13,3 +13,6 @@ images/*
 3rdparty/onnx*
 x64/
 *.weights
+*.dmp
+*.pt
+*.png
