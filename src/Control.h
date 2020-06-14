@@ -217,6 +217,8 @@ public:
         {
             auto_pilot_enabled = false;
             std::cout << "auto pilot off" << std::endl;
+            input_->SetThrottleAndBrake(0);
+            input_->SetWheelAngle(0);
         }
         else if (GetKeyState(VK_OEM_PLUS) & 0x8000)
         {

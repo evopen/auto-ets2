@@ -44,9 +44,9 @@ int main()
         ScreenCapturer capturer;
         Control control(&input, &collector);
 
-        // std::thread init_obj_detector_thread(&InfoCollector::InitObjectDetector, &collector,
-        //    "D:/Dev/auto-ets2/weights/yolov3.cfg", "D:/Dev/auto-ets2/weights/yolov3.weights",
-        //    "D:/Dev/auto-ets2/weights/coco.names");
+        std::thread init_obj_detector_thread(&InfoCollector::InitObjectDetector, &collector,
+            "D:/Dev/auto-ets2/weights/yolov4.cfg", "D:/Dev/auto-ets2/weights/yolov4.weights",
+            "D:/Dev/auto-ets2/weights/coco.names");
         std::thread init_collector_thread(&InfoCollector::InitCollector, &collector);
         std::thread init_lane_detector_thread(
             &InfoCollector::InitLaneDetector, &collector, "D:/DHH/Downloads/erf_net.pt");
@@ -54,7 +54,7 @@ int main()
 
         init_collector_thread.join();
         init_lane_detector_thread.join();
-        // init_obj_detector_thread.join();
+        init_obj_detector_thread.join();
         init_capturer_thread.join();
 
         cv::Mat screenshot;
@@ -95,7 +95,8 @@ int main()
             // cv::imshow("all", collector.all_lanes);
             // cv::imshow("warp", collector.lane_warp_img_);
             // cv::imshow("hough", collector.lane_hough_img_);
-            // cv::imshow("objs", collector.obj_img);
+            cv::imshow("objs", collector.obj_img);
+
             cv::resizeWindow("speed", 300, 50);
             cv::resizeWindow("limit", 300, 50);
             // cv::resizeWindow("cruise", 300, 50);

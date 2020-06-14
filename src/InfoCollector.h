@@ -139,7 +139,8 @@ public:
     void InitObjectDetector(
         std::filesystem::path cfg_path, std::filesystem::path weight_path, std::filesystem::path obj_name_file)
     {
-        obj_detector      = new Detector(cfg_path.string(), weight_path.string());
+        obj_detector = new Detector(cfg_path.string(), weight_path.string());
+
         obj_detector->nms = 0.02;
         obj_names_        = ObjectNamesFromFile(obj_name_file.string());
         obj_img           = cv::Mat::zeros(100, 100, CV_8UC1);
@@ -172,11 +173,9 @@ public:
         std::thread scnn_thread(&LaneDetectorTRT::Detect, scnn_lane_detector, drive_window_.clone(), scnn_lane_img);
 
         std::future<std::vector<bbox_t>> obj_detect;
-        std::future<std::vector<bbox_t>> obj_detect_left;
         if (enable_obj_detect)
         {
-            obj_detect      = std::async(&InfoCollector::detect, this, drive_window_, 0.5f, false);
-            obj_detect_left = std::async(&InfoCollector::detect, this, drive_window_, 0.5f, false);
+            obj_detect = std::async(&InfoCollector::detect, this, drive_window_, obj_detector, 0.5f, false);
         }
 
         std::thread t1(&InfoCollector::ReadNumber, this, speed_ocr_, speed_img_, &speed_, true);
@@ -189,8 +188,9 @@ public:
         if (enable_obj_detect)
         {
             std::vector<bbox_t> objs = obj_detect.get();
-            objs                     = obj_detector->tracking_id(objs);
-            size_t obj_count         = objs.size();
+
+            objs             = obj_detector->tracking_id(objs);
+            size_t obj_count = objs.size();
             for (int i = 0; i < obj_count; ++i)
             {
                 if (objs[i].obj_id != 2 && objs[i].obj_id != 5 && objs[i].obj_id != 6 && objs[i].obj_id != 7
@@ -255,6 +255,52 @@ public:
         cv::erode(warp_lanes[2], warp_lanes[2], cv::Mat::ones(60, 45, CV_8SC1));
     }
 
+    void DetectLeftMirror()
+    {
+        std::future<std::vector<bbox_t>> obj_detect;
+        if (enable_obj_detect)
+        {
+            obj_detect = std::async(&InfoCollector::detect, this, wing_mirror_left_, obj_detector, 0.5f, false);
+        }
+        obj_left_img             = wing_mirror_left_.clone();
+        std::vector<bbox_t> objs = obj_detect.get();
+        size_t obj_count         = objs.size();
+        for (int i = 0; i < obj_count; ++i)
+        {
+            if (objs[i].obj_id != 2 && objs[i].obj_id != 5 && objs[i].obj_id != 6 && objs[i].obj_id != 7
+                && objs[i].obj_id != 9)
+            {
+                objs.erase(objs.begin() + i);
+                obj_count--;
+                i--;
+            }
+        }
+        draw_boxes(obj_left_img, objs, obj_names_);
+    }
+
+    void DetectRightMirror()
+    {
+        std::future<std::vector<bbox_t>> obj_detect;
+        if (enable_obj_detect)
+        {
+            obj_detect = std::async(&InfoCollector::detect, this, wing_mirror_right_, obj_detector, 0.5f, false);
+        }
+        obj_right_img            = wing_mirror_right_.clone();
+        std::vector<bbox_t> objs = obj_detect.get();
+        size_t obj_count         = objs.size();
+        for (int i = 0; i < obj_count; ++i)
+        {
+            if (objs[i].obj_id != 2 && objs[i].obj_id != 5 && objs[i].obj_id != 6 && objs[i].obj_id != 7
+                && objs[i].obj_id != 9)
+            {
+                objs.erase(objs.begin() + i);
+                obj_count--;
+                i--;
+            }
+        }
+        draw_boxes(obj_right_img, objs, obj_names_);
+    }
+
     void HoughLane()
     {
         std::vector<cv::Vec4i> lines;
@@ -288,6 +334,8 @@ public:
     cv::Mat scnn_lane_img;
     cv::Mat lane_img_large;
     cv::Mat obj_img;
+    cv::Mat obj_left_img;
+    cv::Mat obj_right_img;
 
 
     std::array<cv::Mat, 4> lanes;
@@ -373,12 +421,12 @@ private:
         return file_lines;
     }
 
-    std::vector<bbox_t> detect(cv::Mat mat, float thresh = 0.2, bool use_mean = false)
+    std::vector<bbox_t> detect(cv::Mat mat, Detector* detector, float thresh = 0.2, bool use_mean = false)
     {
         if (mat.data == NULL)
             throw std::runtime_error("Image is empty");
-        auto image_ptr = obj_detector->mat_to_image_resize(mat);
-        return obj_detector->detect_resized(*image_ptr, mat.cols, mat.rows, thresh, use_mean);
+        auto image_ptr = detector->mat_to_image_resize(mat);
+        return detector->detect_resized(*image_ptr, mat.cols, mat.rows, thresh, use_mean);
     }
 
     void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std::string> obj_names)
