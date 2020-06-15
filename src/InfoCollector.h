@@ -173,9 +173,9 @@ public:
         std::thread scnn_thread(&LaneDetectorTRT::Detect, scnn_lane_detector, drive_window_.clone(), scnn_lane_img);
 
         std::future<std::vector<bbox_t>> obj_detect;
-        if (enable_obj_detect)
+        if (enable_obj_detect && !obj_detecting)
         {
-            obj_detect = std::async(&InfoCollector::detect, this, drive_window_, obj_detector, 0.5f, false);
+            std::thread(&InfoCollector::detect, this, drive_window_, obj_detector, 0.5f, false).detach();
         }
 
         std::thread t1(&InfoCollector::ReadNumber, this, speed_ocr_, speed_img_, &speed_, true);
@@ -185,24 +185,7 @@ public:
         t1.join();
         t2.join();
         // t3.join();
-        if (enable_obj_detect)
-        {
-            std::vector<bbox_t> objs = obj_detect.get();
 
-            size_t obj_count = objs.size();
-            for (int i = 0; i < obj_count; ++i)
-            {
-                if (objs[i].obj_id != 2 && objs[i].obj_id != 5 && objs[i].obj_id != 6 && objs[i].obj_id != 7
-                    && objs[i].obj_id != 9)
-                {
-                    objs.erase(objs.begin() + i);
-                    obj_count--;
-                    i--;
-                }
-            }
-            obj_img = drive_window_.clone();
-            draw_boxes(obj_img, objs, obj_names_);
-        }
         erf_thread.join();
         scnn_thread.join();
     }
@@ -254,16 +237,16 @@ public:
         cv::erode(warp_lanes[2], warp_lanes[2], cv::Mat::ones(60, 45, CV_8SC1));
     }
 
-    void DetectLeftMirror()
+    /*void DetectLeftMirror()
     {
-        std::future<std::vector<bbox_t>> obj_detect;
+        std::thread obj_detect;
         if (enable_obj_detect)
         {
-            obj_detect = std::async(&InfoCollector::detect, this, wing_mirror_left_, obj_detector, 0.5f, false);
+            obj_detect = std::thread(&InfoCollector::detect, this, wing_mirror_left_, obj_detector, 0.5f, false);
         }
-        obj_left_img             = wing_mirror_left_.clone();
-        std::vector<bbox_t> objs = obj_detect.get();
-        size_t obj_count         = objs.size();
+        obj_left_img = wing_mirror_left_.clone();
+        obj_detect.join();
+        size_t obj_count = objs.size();
         for (int i = 0; i < obj_count; ++i)
         {
             if (objs[i].obj_id != 2 && objs[i].obj_id != 5 && objs[i].obj_id != 6 && objs[i].obj_id != 7
@@ -298,7 +281,7 @@ public:
             }
         }
         draw_boxes(obj_right_img, objs, obj_names_);
-    }
+    }*/
 
     void HoughLane()
     {
@@ -366,7 +349,7 @@ private:
     cv::Rect map_rect_;
     cv::Rect right_mirror_rect_;
     cv::Rect left_mirror_rect_;
-    bool obj_detecting;
+    std::atomic_bool obj_detecting = false;
 
     tesseract::TessBaseAPI* speed_ocr_;
     tesseract::TessBaseAPI* speed_limit_ocr_;
@@ -421,12 +404,28 @@ private:
         return file_lines;
     }
 
-    std::vector<bbox_t> detect(cv::Mat mat, Detector* detector, float thresh = 0.2, bool use_mean = false)
+    void detect(cv::Mat mat, Detector* detector, float thresh = 0.2, bool use_mean = false)
     {
+        obj_detecting = true;
+        obj_img       = drive_window_.clone();
         if (mat.data == NULL)
             throw std::runtime_error("Image is empty");
-        auto image_ptr = detector->mat_to_image_resize(mat);
-        return detector->detect_resized(*image_ptr, mat.cols, mat.rows, thresh, use_mean);
+        auto image_ptr           = detector->mat_to_image_resize(mat);
+        std::vector<bbox_t> objs = detector->detect_resized(*image_ptr, mat.cols, mat.rows, thresh, use_mean);
+
+        size_t obj_count = objs.size();
+        for (int i = 0; i < obj_count; ++i)
+        {
+            if (objs[i].obj_id != 2 && objs[i].obj_id != 5 && objs[i].obj_id != 6 && objs[i].obj_id != 7
+                && objs[i].obj_id != 9)
+            {
+                objs.erase(objs.begin() + i);
+                obj_count--;
+                i--;
+            }
+        }
+        draw_boxes(obj_img, objs, obj_names_);
+        obj_detecting = false;
     }
 
     void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std::string> obj_names)
