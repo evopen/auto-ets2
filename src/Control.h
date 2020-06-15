@@ -2,6 +2,7 @@
 
 #include "InfoCollector.h"
 #include "Input.h"
+#include "Navigator.h"
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
@@ -11,6 +12,7 @@ enum class Directive
     kStraight,
     kShiftRight,
     kShiftLeft,
+    kTurn
 };
 
 enum class Goal
@@ -29,6 +31,8 @@ public:
         key_pressed_time = std::chrono::steady_clock::now();
     }
 
+    void SetNavigator(Navigator* nav) { nav_ = nav; }
+
     void Process()
     {
         GetDirectiveFromKB();
@@ -39,6 +43,21 @@ public:
         if (speed_control_enabled)
         {
             SpeedUpToLimit();
+        }
+
+        if (nav_ != nullptr)
+        {
+            float dominate_angle = std::max(std::abs(nav_->angle_10_pix_left), std::abs(nav_->angle_10_pix_right));
+            if (dominate_angle > CV_PI / 60)
+            {
+                directive = Directive::kTurn;
+                std::cout << "set directive <Turn>" << std::endl;
+            }
+            else if (directive == Directive::kTurn && dominate_angle < CV_PI / 60)
+            {
+                /*input_->SetWheelAngle(0);*/
+                directive = Directive::kStraight;
+            }
         }
 
         switch (directive)
@@ -52,9 +71,23 @@ public:
         case Directive::kShiftRight:
             ShiftRight();
             break;
+        case Directive::kTurn:
+            Turn();
+            break;
         }
     }
 
+    void Turn()
+    {
+        if (std::abs(nav_->angle_10_pix_left) > std::abs(nav_->angle_10_pix_right))
+        {
+            input_->SetWheelAngle(nav_->angle_10_pix_left * 1.5);
+        }
+        else
+        {
+            input_->SetWheelAngle(nav_->angle_10_pix_right * 1.5);
+        }
+    }
 
     void SpeedUpToLimit()
     {
@@ -187,6 +220,14 @@ public:
         // do nothing
         if (lane_pix_loc == 0)
         {
+            /*if (nav_ && std::abs(nav_->angle_10_pix) < 0.3)
+            {
+                float angle = nav_->CalculateStraightAngle();
+                input_->SetWheelAngle(angle / 8);
+                std::cout << "use map calculated angle: " << angle << std::endl;
+                return;
+            }*/
+            std::cout << "use last angle in straight" << std::endl;
             return;
         }
         std::cout << "find: " << lane_pix_loc << std::endl;
@@ -258,8 +299,10 @@ public:
 
 
     int shift_stage = 0;
+    int speed_cap;
 
 private:
     Input* input_;
     InfoCollector* collector_;
+    Navigator* nav_;
 };

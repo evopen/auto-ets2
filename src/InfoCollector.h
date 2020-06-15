@@ -141,7 +141,7 @@ public:
     {
         obj_detector = new Detector(cfg_path.string(), weight_path.string());
 
-        obj_detector->nms = 0.02;
+        obj_detector->nms = 0;
         obj_names_        = ObjectNamesFromFile(obj_name_file.string());
         obj_img           = cv::Mat::zeros(100, 100, CV_8UC1);
 
@@ -150,7 +150,7 @@ public:
 
     void SetScreenshot(cv::Mat screenshot) { screenshot_ = screenshot; }
     void CropToGameWindow(cv::Rect rect) { game_window_ = screenshot_(rect); }
-    void CropRegion()
+    void CropRegion()   
     {
         drive_window_ = game_window_(drive_window_rect_);
         speed_img_    = game_window_(speed_rect_);
@@ -189,7 +189,6 @@ public:
         {
             std::vector<bbox_t> objs = obj_detect.get();
 
-            objs             = obj_detector->tracking_id(objs);
             size_t obj_count = objs.size();
             for (int i = 0; i < obj_count; ++i)
             {

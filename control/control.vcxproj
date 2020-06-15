@@ -160,6 +160,7 @@
     <ClInclude Include="..\src\Input.h" />
     <ClInclude Include="..\src\LaneDetector.h" />
     <ClInclude Include="..\src\LaneDetector_pt.h" />
+    <ClInclude Include="..\src\Navigator.h" />
     <ClInclude Include="..\src\ObjectDetector.h" />
     <ClInclude Include="..\src\ScreenCapturer.h" />
   </ItemGroup>
