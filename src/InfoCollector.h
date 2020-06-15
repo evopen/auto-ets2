@@ -180,6 +180,8 @@ public:
 
         std::thread t1(&InfoCollector::ReadNumber, this, speed_ocr_, speed_img_, &speed_, true);
         std::thread t2(&InfoCollector::ReadNumber, this, speed_limit_ocr_, speed_limit_img_, &speed_limit_, false);
+        if (speed_limit_ == 0)
+            speed_limit_ = 60;
         // std::thread t3(&InfoCollector::ReadNumber, this, cruise_speed_ocr_, cruise_speed_img_, &cruise_speed_);
 
         t1.join();
