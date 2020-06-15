@@ -150,7 +150,7 @@ public:
 
     void SetScreenshot(cv::Mat screenshot) { screenshot_ = screenshot; }
     void CropToGameWindow(cv::Rect rect) { game_window_ = screenshot_(rect); }
-    void CropRegion()   
+    void CropRegion()
     {
         drive_window_ = game_window_(drive_window_rect_);
         speed_img_    = game_window_(speed_rect_);
@@ -366,6 +366,7 @@ private:
     cv::Rect map_rect_;
     cv::Rect right_mirror_rect_;
     cv::Rect left_mirror_rect_;
+    bool obj_detecting;
 
     tesseract::TessBaseAPI* speed_ocr_;
     tesseract::TessBaseAPI* speed_limit_ocr_;
@@ -395,7 +396,7 @@ private:
             int new_reading = atoi(outText.c_str());
             if (steady)
             {
-                if (std::abs(new_reading - *number) > 15)
+                if (std::abs(new_reading - *number) > 25)
                     return false;
                 else
                     *number = new_reading;

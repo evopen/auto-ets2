@@ -22,7 +22,7 @@ public:
         uint8_t* pix_ptr = path_img.data;
         // left
         {
-            for (float angle = 0; angle < CV_PI / 2; angle += 0.001)
+            for (float angle = 0; angle < CV_PI; angle += 0.001)
             {
                 probe_point = GetCircleCoord(angle, short_probe_len, 0);
                 // std::cout << probe_point << std::endl;
@@ -35,7 +35,7 @@ public:
         }
         // right
         {
-            for (float angle = 0; angle > -CV_PI / 2; angle -= 0.001)
+            for (float angle = 0; angle > -CV_PI; angle -= 0.001)
             {
                 probe_point = GetCircleCoord(angle, short_probe_len, 1);
                 // std::cout << probe_point << std::endl;
@@ -52,16 +52,23 @@ public:
         cv::Point probe_point;
         uint8_t* pix_ptr = path_img.data;
 
-        for (float angle = 0; angle < CV_PI / 2; angle += 0.001)
+        for (float angle = 0; angle < CV_PI; angle += 0.001)
         {
-            probe_point = GetCircleCoord(angle, short_probe_len);
-            // std::cout << probe_point << std::endl;
+            probe_point = GetCircleCoord(angle, long_probe_len);
             if (pix_ptr[probe_point.y * original_map.cols + probe_point.x] != 0)
             {
                 angle_50_pix = angle;
-                break;
+                return;
+            }
+
+            probe_point.x = -probe_point.x;
+            if (pix_ptr[probe_point.y * original_map.cols + probe_point.x] != 0)
+            {
+                angle_50_pix = -angle;
+                return;
             }
         }
+        angle_50_pix = 1.5;
     }
 
 public:
@@ -71,7 +78,7 @@ public:
     cv::Mat arrow_img;
 
     int short_probe_len = 12;
-    int long_probe_len  = 30;
+    int long_probe_len  = 39;
 
     float angle_10_pix_left;
     float angle_10_pix_right;

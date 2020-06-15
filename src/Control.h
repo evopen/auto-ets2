@@ -58,6 +58,17 @@ public:
                 /*input_->SetWheelAngle(0);*/
                 directive = Directive::kStraight;
             }
+
+            if (std::abs(nav_->angle_50_pix) > 1)
+            {
+                speed_cap = 30.f;
+            }
+            else
+            {
+                speed_cap = ((1.0 - std::abs(nav_->angle_50_pix)) + 1) * 30;
+            }
+            speed_cap = std::min(speed_cap, collector_->speed_limit_);
+            std::cout << "speed cap: " << speed_cap << std::endl;
         }
 
         switch (directive)
@@ -81,30 +92,30 @@ public:
     {
         if (std::abs(nav_->angle_10_pix_left) > std::abs(nav_->angle_10_pix_right))
         {
-            input_->SetWheelAngle(nav_->angle_10_pix_left * 1.5);
+            input_->SetWheelAngle(std::min(nav_->angle_10_pix_left * 1.5, 1.0));
         }
         else
         {
-            input_->SetWheelAngle(nav_->angle_10_pix_right * 1.5);
+            input_->SetWheelAngle(std::min(nav_->angle_10_pix_right * 1.5, 1.0));
         }
     }
 
     void SpeedUpToLimit()
     {
-        if (collector_->speed_ < 50)
+        if (collector_->speed_ < 30)
         {
             input_->SetThrottleAndBrake(0.99);
             std::cout << "full throttle" << std::endl;
             return;
         }
-        if (collector_->speed_ < collector_->speed_limit_ - 5)
+        if (collector_->speed_ < speed_cap - 5)
         {
             input_->SetThrottleAndBrake(0.6);
             std::cout << "0.6 throttle" << std::endl;
             return;
         }
 
-        int speed_up_room = collector_->speed_limit_ - collector_->speed_;
+        int speed_up_room = speed_cap - collector_->speed_;
         if (speed_up_room > 0)
         {
             input_->SetThrottleAndBrake(0.3);
@@ -234,7 +245,7 @@ public:
         float controller_x = (lane_pix_loc - 200.f) * 0.03 * (1.0 / (collector_->speed_ + 10));
         std::cout << "set: " << controller_x << std::endl;
         last_steering = (controller_x + last_steering) / 2;
-        input_->SetWheelAngle(last_steering);
+        input_->SetWheelAngle(std::min(last_steering, 1.f));
     }
 
     void PressKey(WORD vkey)
