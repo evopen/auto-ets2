@@ -48,8 +48,8 @@ private:
     int output_seg_pred_index;
     int output_exist_pred_index;
 
-    cv::Mat output_seg_pred_blob;
-    cv::Mat output_exist_pred_blob;
+    cv::Mat output_seg_blob;
+    cv::Mat output_exist_blob;
 
     const int width  = 800;
     const int height = 288;

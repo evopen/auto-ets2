@@ -59,14 +59,16 @@ public:
                 directive = Directive::kStraight;
             }
 
-            if (std::abs(nav_->angle_50_pix) > 1)
+            if (std::abs(nav_->angle_50_pix) > 0.6)
             {
                 speed_cap = 30.f;
             }
             else
             {
-                speed_cap = ((1.0 - std::abs(nav_->angle_50_pix)) + 1) * 30;
+
+                speed_cap = ((1.5 - std::abs(nav_->angle_50_pix)) + 1) * 32;
             }
+            std::cout << "angle 50: " << nav_->angle_50_pix << std::endl;
             speed_cap = std::min(speed_cap, collector_->speed_limit_);
             std::cout << "speed cap: " << speed_cap << std::endl;
         }
@@ -92,11 +94,19 @@ public:
     {
         if (std::abs(nav_->angle_10_pix_left) > std::abs(nav_->angle_10_pix_right))
         {
-            input_->SetWheelAngle(std::min(nav_->angle_10_pix_left * 1.5, 1.0));
+            std::cout << "left angle: " << nav_->angle_10_pix_left << std::endl;
+            if (nav_->angle_10_pix_left > 0)
+                input_->SetWheelAngle(std::min(nav_->angle_10_pix_left, 1.f));
+            else
+                input_->SetWheelAngle(std::max(nav_->angle_10_pix_left, -1.f));
         }
         else
         {
-            input_->SetWheelAngle(std::min(nav_->angle_10_pix_right * 1.5, 1.0));
+            std::cout << "right angle: " << nav_->angle_10_pix_right << std::endl;
+            if (nav_->angle_10_pix_right > 0)
+                input_->SetWheelAngle(std::min(nav_->angle_10_pix_right, 1.f));
+            else
+                input_->SetWheelAngle(std::max(nav_->angle_10_pix_right, -1.f));
         }
     }
 
@@ -108,23 +118,28 @@ public:
             std::cout << "full throttle" << std::endl;
             return;
         }
-        if (collector_->speed_ < speed_cap - 5)
+        if (collector_->speed_ < speed_cap)
         {
             input_->SetThrottleAndBrake(0.6);
             std::cout << "0.6 throttle" << std::endl;
             return;
         }
-
-        int speed_up_room = speed_cap - collector_->speed_;
-        if (speed_up_room > 0)
+        else if (collector_->speed_ == speed_cap)
         {
             input_->SetThrottleAndBrake(0.3);
             std::cout << "0.3 throttle" << std::endl;
+            return;
+        }
+        else if (collector_->speed_ - speed_cap > 10)
+        {
+            input_->SetThrottleAndBrake(-0.99);
+            std::cout << "brake: 1" << std::endl;
         }
         else
         {
-            input_->SetThrottleAndBrake(-0.1);
-            std::cout << "0.1 brake" << std::endl;
+            float brake_force = -speed_cap / collector_->speed_;
+            input_->SetThrottleAndBrake(brake_force);
+            std::cout << "brake: " << brake_force << std::endl;
         }
     }
 
@@ -207,7 +222,7 @@ public:
         uint8_t* pix_ptr = collector_->warp_lanes[1].data;
         for (int i = 0; i < 400; i++)
         {
-            if (pix_ptr[300 * 400 + i] != 0)
+            if (pix_ptr[200 * 400 + i] != 0)
             {
                 lane_pix_loc = i;
                 break;
@@ -220,7 +235,7 @@ public:
             pix_ptr = collector_->warp_lanes[2].data;
             for (int i = 0; i < 400; i++)
             {
-                if (pix_ptr[300 * 400 + i] != 0)
+                if (pix_ptr[200 * 400 + i] != 0)
                 {
                     lane_pix_loc = i;
                     break;
@@ -242,7 +257,7 @@ public:
             return;
         }
         std::cout << "find: " << lane_pix_loc << std::endl;
-        float controller_x = (lane_pix_loc - 200.f) * 0.03 * (1.0 / (collector_->speed_ + 10));
+        float controller_x = (lane_pix_loc - 200.f) * 0.02 * (1.0 / (collector_->speed_ + 10) * 2);
         std::cout << "set: " << controller_x << std::endl;
         last_steering = (controller_x + last_steering) / 2;
         input_->SetWheelAngle(std::min(last_steering, 1.f));

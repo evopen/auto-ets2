@@ -10,43 +10,68 @@
 class LaneDetectorTRT
 {
 public:
-    LaneDetectorTRT(std::filesystem::path model_path)
+    LaneDetectorTRT(std::filesystem::path model_path, int input_width, int input_height, std::array<float, 3> mean,
+        std::array<float, 3> std)
+        : input_width_(input_width), input_height_(input_height), mean_(mean), std_(std)
     {
         runtime                 = nvinfer1::createInferRuntime(gLogger.getTRTLogger());
         auto engine_bytes       = ReadFile(model_path);
         engine                  = runtime->deserializeCudaEngine(engine_bytes.data(), engine_bytes.size(), nullptr);
         context                 = engine->createExecutionContext();
-        input_index             = engine->getBindingIndex("input.1");
-        output_seg_pred_index   = engine->getBindingIndex("2347");
-        output_exist_pred_index = engine->getBindingIndex("2343");
+        input_index             = engine->getBindingIndex("input");
+        output_seg_pred_index   = engine->getBindingIndex("seg");
+        output_exist_pred_index = engine->getBindingIndex("prob");
 
-        cudaMalloc(&io_buffers[input_index], width * height * 3 * sizeof(float));
-        cudaMalloc(&io_buffers[output_seg_pred_index], (height / 8) * (width / 8) * sizeof(int8_t));
+        auto a   = engine->getBindingDataType(0);
+        auto b   = engine->getBindingDataType(1);
+        auto c   = engine->getBindingDataType(2);
+        auto aaa = engine->getBindingDimensions(0);
+        auto d   = engine->getBindingDimensions(1);
+
+        cudaMalloc(&io_buffers[input_index], input_width_ * input_height_ * 3 * sizeof(float));
+        cudaMalloc(&io_buffers[output_seg_pred_index], input_height_ * input_width_ * 5 * sizeof(float));
         cudaMalloc(&io_buffers[output_exist_pred_index], 4 * 1 * sizeof(float));
 
-        output_seg_pred_blob   = cv::Mat::zeros(height / 8, width / 8, CV_8SC1);
-        output_exist_pred_blob = cv::Mat(1, 4, CV_32FC1);
+        seg_img           = cv::Mat(input_height_, input_width_, CV_8UC1);
+        output_exist_blob = cv::Mat(1, 4, CV_32FC1);
+        seg               = new float[input_height_ * input_width_ * 5];
     }
 
     void Detect(cv::Mat in_img, cv::Mat out_img)
     {
-        cv::resize(in_img, in_img, cv::Size(width, height));
-        in_img.convertTo(in_img, CV_32FC3, 1.0 / 255);
-        in_img -= cv::Scalar(0.3598, 0.3653, 0.3662);
-        in_img /= cv::Scalar(0.2573, 0.2663, 0.2756);
-        cv::Mat input_blob = cv::dnn::blobFromImage(in_img);
-
-        cudaMemcpy(
-            io_buffers[input_index], input_blob.data, width * height * 3 * sizeof(float), cudaMemcpyHostToDevice);
+        cv::Mat input_blob = cv::dnn::blobFromImage(
+            in_img, 1.0, cv::Size(input_width_, input_height_), cv::Scalar(std_[0], std_[1], std_[2]), false, false);
+        cudaMemcpy(io_buffers[input_index], input_blob.data, input_height_ * input_width_ * 3 * sizeof(float),
+            cudaMemcpyHostToDevice);
 
         context->executeV2(io_buffers);
 
-        cudaMemcpy(output_seg_pred_blob.data, io_buffers[output_seg_pred_index],
-            (height / 8) * (width / 8) * sizeof(int8_t), cudaMemcpyDeviceToHost);
 
-        output_seg_pred_blob.convertTo(out_img, CV_8UC1);
+        cudaMemcpy(seg, io_buffers[output_seg_pred_index], input_width_ * input_height_ * 5 * sizeof(float),
+            cudaMemcpyDeviceToHost);
+        cudaMemcpy(
+            output_exist_blob.data, io_buffers[output_exist_pred_index], 4 * sizeof(float), cudaMemcpyDeviceToHost);
 
-        cv::resize(out_img, out_img, cv::Size(400, 400));
+        uint8_t* seg_img_ptr = seg_img.data;
+        for (int i = 0; i < input_height_; i++)
+        {
+            for (int j = 0; j < input_width_; j++)
+            {
+                int arg       = INT_MAX;
+                float max_tmp = -FLT_MAX;
+                for (int k = 0; k <= 4; k++)
+                {
+                    if (seg[k * input_height_ * input_width_ + i * input_width_ + j] > max_tmp)
+                    {
+                        max_tmp = seg[k * input_height_ * input_width_ + i * input_width_ + j];
+                        arg     = k;
+                    }
+                }
+                seg_img_ptr[i * input_width_ + j] = arg;
+            }
+        }
+
+        cv::resize(seg_img, out_img, cv::Size(400, 400));
         ArgMaxPostprocess(out_img);
     }
 
@@ -69,11 +94,14 @@ private:
     int output_seg_pred_index;
     int output_exist_pred_index;
 
-    cv::Mat output_seg_pred_blob;
-    cv::Mat output_exist_pred_blob;
+    cv::Mat seg_img;
+    cv::Mat output_exist_blob;
 
-    const int width  = 800;
-    const int height = 288;
+    const int input_width_;
+    const int input_height_;
+    std::array<float, 3> mean_;
+    std::array<float, 3> std_;
+    float* seg;
 
     cv::Mat buffer;
 
@@ -95,9 +123,9 @@ private:
     void ArgMaxPostprocess(cv::Mat img)
     {
         cv::Mat tmp[4];
-        cv::inRange(img, cv::Scalar(32), cv::Scalar(32), lanes[0]);
-        cv::inRange(img, cv::Scalar(64), cv::Scalar(64), lanes[1]);
-        cv::inRange(img, cv::Scalar(95), cv::Scalar(95), lanes[2]);
-        cv::inRange(img, cv::Scalar(127), cv::Scalar(127), lanes[3]);
+        cv::inRange(img, cv::Scalar(1), cv::Scalar(1), lanes[0]);
+        cv::inRange(img, cv::Scalar(2), cv::Scalar(2), lanes[1]);
+        cv::inRange(img, cv::Scalar(3), cv::Scalar(3), lanes[2]);
+        cv::inRange(img, cv::Scalar(4), cv::Scalar(4), lanes[3]);
     }
 };

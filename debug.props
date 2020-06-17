@@ -7,12 +7,12 @@
     <ClCompile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\whatever\opencv\build\include;D:\Dev\auto-ets2\3rdparty\ViGEmClient\include;D:\whatever\TensorRT-7.0.0.11\samples\common;D:\whatever\TensorRT-7.0.0.11\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include;D:\whatever\libtorch-win-shared-with-deps-1.5.0\libtorch\include\torch\csrc\api\include;D:\whatever\libtorch-win-shared-with-deps-1.5.0\libtorch\include;$(SolutionDir)\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\whatever\opencv\build\include;D:\Dev\auto-ets2\3rdparty\ViGEmClient\include;D:\whatever\TensorRT-7.0.0.11\samples\common;D:\whatever\TensorRT-7.0.0.11\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include;$(SolutionDir)\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/D _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS /D _CRT_SECURE_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>D:\whatever\opencv\build\x64\vc15\lib;D:\whatever\TensorRT-7.0.0.11\lib;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\lib\x64;D:\whatever\libtorch-win-shared-with-deps-1.5.0\libtorch\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>cudart.lib;nvinfer.lib;Setupapi.lib;D:\whatever\libtorch-win-shared-with-deps-1.5.0\libtorch\lib\torch_cuda.lib;D:\whatever\libtorch-win-shared-with-deps-1.5.0\libtorch\lib\c10_cuda.lib;D:\whatever\libtorch-win-shared-with-deps-1.5.0\libtorch\lib\*.lib;opencv_world430d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\whatever\opencv\build\x64\vc15\lib;D:\whatever\TensorRT-7.0.0.11\lib;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>cudart.lib;nvinfer.lib;Setupapi.lib;opencv_world430d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /y /d "D:\whatever\libtorch-win-shared-with-deps-1.5.0\libtorch\lib\*.dll" "$(OutDir)" 

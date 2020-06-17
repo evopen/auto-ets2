@@ -2,9 +2,9 @@
 
 int main()
 {
-    LaneDetectorTRT detector("D:/Dev/auto-ets2/frozen_models/6.6_2060_fp32_288.800_36.100_explicitBatch.trt");
-    cv::Mat img = cv::imread("D:/Dev/asdf/Dev/auto-ets2-bak/sample_image/crop.png");
-    cv::Mat out_img = cv::Mat::zeros(36, 100, CV_8SC1);
+    LaneDetectorTRT detector("../erf_net.trt", 976, 208, {103.939, 116.779, 123.68}, {1, 1, 1});
+    cv::Mat img     = cv::imread("D:/Dev/asdf/Dev/auto-ets2-bak/sample_image/crop.png");
+    cv::Mat out_img = cv::Mat::zeros(208, 976, CV_8UC1);
     detector.Detect(img, out_img);
     int count = 0;
     while (1)

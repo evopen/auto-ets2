@@ -36,9 +36,6 @@
     <ClInclude Include="..\3rdparty\ViGEmClient\include\ViGEm\Client.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\LaneDetector_pt.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\Control.h">
       <Filter>Source Files</Filter>
     </ClInclude>

@@ -22,28 +22,64 @@ public:
         uint8_t* pix_ptr = path_img.data;
         // left
         {
-            for (float angle = 0; angle < CV_PI; angle += 0.001)
+            float left_most  = 0;
+            float right_most = 0;
+            for (float angle = 0; angle < CV_PI; angle += 0.01)
             {
                 probe_point = GetCircleCoord(angle, short_probe_len, 0);
-                // std::cout << probe_point << std::endl;
                 if (pix_ptr[probe_point.y * original_map.cols + probe_point.x] != 0)
                 {
-                    angle_10_pix_left = angle;
+                    right_most = angle;
                     break;
                 }
+            }
+            for (float angle = 0; angle >- CV_PI; angle -= 0.01)
+            {
+                probe_point = GetCircleCoord(angle, short_probe_len, 0);
+                if (pix_ptr[probe_point.y * original_map.cols + probe_point.x] != 0)
+                {
+                    left_most = angle;
+                    break;
+                }
+            }
+            if (-left_most > right_most)
+            {
+                angle_10_pix_left = right_most;
+            }
+            else
+            {
+                angle_10_pix_left = left_most;
             }
         }
         // right
         {
-            for (float angle = 0; angle > -CV_PI; angle -= 0.001)
+            float left_most  = 0;
+            float right_most = 0;
+            for (float angle = 0; angle > -CV_PI; angle -= 0.01)
             {
                 probe_point = GetCircleCoord(angle, short_probe_len, 1);
-                // std::cout << probe_point << std::endl;
                 if (pix_ptr[probe_point.y * original_map.cols + probe_point.x] != 0)
                 {
-                    angle_10_pix_right = angle;
+                    left_most = angle;
                     break;
                 }
+            }
+            for (float angle = 0; angle <CV_PI; angle += 0.01)
+            {
+                probe_point = GetCircleCoord(angle, short_probe_len, 1);
+                if (pix_ptr[probe_point.y * original_map.cols + probe_point.x] != 0)
+                {
+                    right_most = angle;
+                    break;
+                }
+            }
+            if (-left_most > right_most)
+            {
+                angle_10_pix_right = right_most;
+            }
+            else
+            {
+                angle_10_pix_right = left_most;
             }
         }
     }
@@ -77,7 +113,7 @@ public:
     cv::Mat path_img;
     cv::Mat arrow_img;
 
-    int short_probe_len = 12;
+    int short_probe_len = 20;
     int long_probe_len  = 39;
 
     float angle_10_pix_left;

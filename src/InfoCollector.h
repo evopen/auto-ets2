@@ -1,7 +1,6 @@
 #pragma once
 
 // clang-format off
-#include "LaneDetector_pt.h"
 #include "LaneDetector.h"
 // clang-format on
 
@@ -115,20 +114,10 @@ public:
         }
         else
         {
-            erf_lane_detector = new LaneDetector(model_path, 976, 208, {103.939, 116.779, 123.68}, {1, 1, 1});
+            erf_lane_detector = new LaneDetectorTRT(model_path, 976, 208, {103.939, 116.779, 123.68}, {1, 1, 1});
             erf_lane_img      = cv::Mat::zeros(lane_view_height, lane_view_width, CV_8UC1);
         }
 
-        if (scnn_lane_detector)
-        {
-            delete (scnn_lane_detector);
-        }
-        else
-        {
-            scnn_lane_detector =
-                new LaneDetectorTRT("D:/Dev/auto-ets2/frozen_models/6.6_2060_fp32_288.800_36.100_explicitBatch.trt");
-            scnn_lane_img = cv::Mat::zeros(lane_view_height, lane_view_width, CV_8SC1);
-        }
 
         for (int i = 0; i < lanes.size(); i++)
         {
@@ -169,8 +158,7 @@ public:
     }
     void ReadInfo()
     {
-        std::thread erf_thread(&LaneDetector::Detect, erf_lane_detector, drive_window_.clone(), erf_lane_img);
-        std::thread scnn_thread(&LaneDetectorTRT::Detect, scnn_lane_detector, drive_window_.clone(), scnn_lane_img);
+        std::thread erf_thread(&LaneDetectorTRT::Detect, erf_lane_detector, drive_window_.clone(), erf_lane_img);
 
         std::future<std::vector<bbox_t>> obj_detect;
         if (enable_obj_detect && !obj_detecting)
@@ -189,21 +177,10 @@ public:
         // t3.join();
 
         erf_thread.join();
-        scnn_thread.join();
     }
 
     void MergeLaneResult()
     {
-        std::array<cv::Mat, 4> scnn_tmp;
-        cv::resize(scnn_lane_detector->lanes[0], scnn_tmp[0], cv::Size(lane_view_width, lane_view_height), 0, 0,
-            cv::INTER_NEAREST);
-        cv::resize(scnn_lane_detector->lanes[1], scnn_tmp[1], cv::Size(lane_view_width, lane_view_height), 0, 0,
-            cv::INTER_NEAREST);
-        cv::resize(scnn_lane_detector->lanes[2], scnn_tmp[2], cv::Size(lane_view_width, lane_view_height), 0, 0,
-            cv::INTER_NEAREST);
-        cv::resize(scnn_lane_detector->lanes[3], scnn_tmp[3], cv::Size(lane_view_width, lane_view_height), 0, 0,
-            cv::INTER_NEAREST);
-
         std::array<cv::Mat, 4> erf_tmp;
         cv::resize(erf_lane_detector->lanes[0], erf_tmp[0], cv::Size(lane_view_width, lane_view_height), 0, 0,
             cv::INTER_NEAREST);
@@ -214,14 +191,14 @@ public:
         cv::resize(erf_lane_detector->lanes[3], erf_tmp[3], cv::Size(lane_view_width, lane_view_height), 0, 0,
             cv::INTER_NEAREST);
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0;i<4;++i)
         {
-            cv::bitwise_or(scnn_tmp[i], erf_tmp[i], lanes[i]);
+            lanes[i] = erf_lane_detector->lanes[i];
         }
 
-        cv::bitwise_or(lanes[0], lanes[1], all_lanes);
-        cv::bitwise_or(lanes[2], all_lanes, all_lanes);
-        cv::bitwise_or(lanes[3], all_lanes, all_lanes);
+        cv::bitwise_or(erf_tmp[0], erf_tmp[1], all_lanes);
+        cv::bitwise_or(erf_tmp[2], all_lanes, all_lanes);
+        cv::bitwise_or(erf_tmp[3], all_lanes, all_lanes);
     }
 
     void WarpLane()
@@ -315,7 +292,6 @@ public:
     // cv::Mat cruise_speed_img_;
     cv::Mat map_img_;
     cv::Mat erf_lane_img;
-    cv::Mat scnn_lane_img;
     cv::Mat lane_img_large;
     cv::Mat obj_img;
     cv::Mat obj_left_img;
@@ -361,9 +337,7 @@ private:
 
     Detector* obj_detector;
 
-    LaneDetectorTRT* scnn_lane_detector = nullptr;
-
-    LaneDetector* erf_lane_detector = nullptr;
+    LaneDetectorTRT* erf_lane_detector = nullptr;
 
     bool ReadNumber(tesseract::TessBaseAPI* ocr, cv::Mat img, int* number, bool steady = false)
     {
