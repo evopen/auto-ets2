@@ -191,7 +191,7 @@ public:
         cv::resize(erf_lane_detector->lanes[3], erf_tmp[3], cv::Size(lane_view_width, lane_view_height), 0, 0,
             cv::INTER_NEAREST);
 
-        for (int i = 0;i<4;++i)
+        for (int i = 0; i < 4; ++i)
         {
             lanes[i] = erf_lane_detector->lanes[i];
         }

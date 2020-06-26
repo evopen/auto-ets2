@@ -9,7 +9,6 @@
 
 int main()
 {
-    LoadLibraryA("torch_cuda.dll");
     SetProcessDPIAware();
     try
     {
@@ -31,14 +30,19 @@ int main()
         }
 
         RECT rcClient, rcWind;
+        HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+        MONITORINFO monitor_info;
+        monitor_info.cbSize = sizeof(MONITORINFO);
+        GetMonitorInfo(monitor, &monitor_info);
+
         GetClientRect(hwnd, &rcClient);
         GetWindowRect(hwnd, &rcWind);
         POINT start_point;
         auto title_bar_height =
             GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYSIZEFRAME) + GetSystemMetrics(SM_CYEDGE) * 2 + 3;
 
-        start_point.x = rcWind.left + ((rcWind.right - rcWind.left) - rcClient.right) / 2;
-        start_point.y = rcWind.top + title_bar_height;
+        start_point.x = rcWind.left + ((rcWind.right - rcWind.left) - rcClient.right) / 2 - monitor_info.rcMonitor.left;
+        start_point.y = rcWind.top + title_bar_height - monitor_info.rcMonitor.top;
         cv::Rect rect(cv::Point(start_point.x, start_point.y), cv::Size(rcClient.right, rcClient.bottom));
 
         InfoCollector collector(rcClient.right, rcClient.bottom);
@@ -70,6 +74,7 @@ int main()
         while (true)
         {
             screenshot = capturer.Capture();
+
             collector.SetScreenshot(screenshot);
             collector.CropToGameWindow(rect);
             collector.CropRegion();
@@ -98,6 +103,7 @@ int main()
             // collector.HoughLane();
 
             control.Process();
+
 
             // cv::imshow("game", collector.game_window_);
             // cv::imshow("drive", collector.drive_window_);
