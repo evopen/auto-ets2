@@ -7,17 +7,16 @@
     <ClCompile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\whatever\opencv\build\include;D:\Dev\auto-ets2\3rdparty\ViGEmClient\include;D:\whatever\TensorRT-7.0.0.11\samples\common;D:\whatever\TensorRT-7.0.0.11\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include;$(SolutionDir)\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\whatever\opencv_4_3_0_cudnn_10_2_py37_D\install\include;D:\Dev\auto-ets2\3rdparty\ViGEmClient\include;D:\whatever\TensorRT-7.0.0.11\samples\common;D:\whatever\TensorRT-7.0.0.11\include;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\include;$(SolutionDir)\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/D _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS /D _CRT_SECURE_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>D:\whatever\opencv\build\x64\vc15\lib;D:\whatever\TensorRT-7.0.0.11\lib;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\whatever\opencv_4_3_0_cudnn_10_2_py37_D\lib;D:\whatever\TensorRT-7.0.0.11\lib;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v10.2\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>cudart.lib;nvinfer.lib;Setupapi.lib;opencv_world430d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /y /d "D:\whatever\libtorch-win-shared-with-deps-1.5.0\libtorch\lib\*.dll" "$(OutDir)" 
-xcopy /y /d "D:\whatever\opencv\build\x64\vc15\bin\*.dll" "$(OutDir)" 
-xcopy /y /d "D:\whatever\opencv\build\x64\vc15\bin\*.pdb" "$(OutDir)" </Command>
+      <Command>xcopy /y /d "D:\whatever\opencv_4_3_0_cudnn_10_2_py37_D\install\x64\vc16\bin\opencv_world430d.dll" "$(OutDir)" 
+xcopy /y /d "D:\whatever\opencv_4_3_0_cudnn_10_2_py37_D\lib\opencv_world430d.pdb" "$(OutDir)" </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup />

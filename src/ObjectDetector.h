@@ -7,64 +7,77 @@
 
 #include <filesystem>
 
+struct BoundingBox
+{
+    float x;
+    float y;
+    float w;
+    float h;
+};
+
+struct Object
+{
+    BoundingBox box;
+    float confidence;
+    int class_id;
+
+    Object(BoundingBox b, float c, int id) : box(b), confidence(c), class_id(id) {}
+};
+
 class ObjectDetector
 {
 public:
-    ObjectDetector(std::filesystem::path model_path)
+    ObjectDetector(std::filesystem::path cfg_path, std::filesystem::path model_path)
     {
-        runtime                 = nvinfer1::createInferRuntime(gLogger.getTRTLogger());
-        nvinfer1::IPluginFactory;
-        auto engine_bytes       = ReadFile(model_path);
-        engine                  = runtime->deserializeCudaEngine(engine_bytes.data(), engine_bytes.size(), nullptr);
-        context                 = engine->createExecutionContext();
-        const char* name_1      = engine->getBindingName(0);
-        const char* name_2      = engine->getBindingName(1);
-        const char* name_3      = engine->getBindingName(2);
+        net          = cv::dnn::readNetFromDarknet("../weights/yolov3.cfg", "../weights/yolov3.weights");
+        output_names = net.getUnconnectedOutLayersNames();
+
+        net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
+        net.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA_FP16);
     }
 
-    void Detect(cv::Mat in_img, cv::Mat out_img)
+    std::vector<Object> Detect(cv::Mat in_img)
     {
-        cv::resize(in_img, in_img, cv::Size(width, height));
-        in_img.convertTo(in_img, CV_32FC3, 1.0 / 255);
-        in_img -= cv::Scalar(0.3598, 0.3653, 0.3662);
-        in_img /= cv::Scalar(0.2573, 0.2663, 0.2756);
-        cv::Mat input_blob = cv::dnn::blobFromImage(in_img);
+        std::vector<Object> detected_objs;
 
-        cudaMemcpy(
-            io_buffers[input_index], input_blob.data, width * height * 3 * sizeof(float), cudaMemcpyHostToDevice);
+        cv::Mat blob = cv::dnn::blobFromImage(in_img, 1.0 / 255, {320, 320}, {1}, true, false, CV_32F);
+        net.setInput(blob);
+        std::vector<cv::Mat> outs;
+        net.forward(outs, output_names);
 
-        context->executeV2(io_buffers);
+        for (const auto& output : outs)
+        {
+            float* data = (float*) output.data;
 
-        cudaMemcpy(out_img.data, io_buffers[output_seg_pred_index], (height / 8) * (width / 8) * sizeof(int8_t),
-            cudaMemcpyDeviceToHost);
+            for (int detection_idx = 0; detection_idx < output.rows; ++detection_idx)
+            {
+                float current_max = -DBL_MAX;
+                int current_max_idx;
+                for (int i = 5; i < 85; ++i)
+                {
+                    if (data[i] > current_max)
+                    {
+                        current_max     = data[i];
+                        current_max_idx = i;
+                    }
+                }
+
+
+                float confidence = *(data + current_max_idx);
+                int class_id     = current_max_idx - 5;
+                if (confidence > 0.5)
+                {
+                    detected_objs.emplace_back(Object({data[0], data[1], data[2], data[3]}, confidence, class_id));
+                }
+
+                data += 85;
+            }
+        }
+
+        return detected_objs;
     }
 
 private:
-    nvinfer1::IRuntime* runtime;
-    nvinfer1::ICudaEngine* engine;
-    nvinfer1::IExecutionContext* context;
-
-    int input_index;
-    int output_seg_pred_index;
-    int output_exist_pred_index;
-
-    cv::Mat output_seg_blob;
-    cv::Mat output_exist_blob;
-
-    const int width  = 800;
-    const int height = 288;
-
-    void* io_buffers[3];
-
-    std::vector<char> ReadFile(const std::filesystem::path& file_path)
-    {
-        std::ifstream file(file_path.c_str(), std::ios::ate | std::ios::binary);
-        size_t length = file.tellg();
-        file.seekg(0);
-
-        std::vector<char> buffer;
-        buffer.resize(length);
-        file.read(buffer.data(), length);
-        return buffer;
-    }
+    cv::dnn::dnn4_v20200310::Net net;
+    std::vector<std::string> output_names;
 };

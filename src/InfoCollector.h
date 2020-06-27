@@ -8,7 +8,7 @@
 
 #define OPENCV
 
-#include <darknet/yolo_v2_class.hpp>
+#include <ObjectDetector.h>
 #include <opencv2/opencv.hpp>
 #include <tesseract/baseapi.h>
 
@@ -128,11 +128,10 @@ public:
     void InitObjectDetector(
         std::filesystem::path cfg_path, std::filesystem::path weight_path, std::filesystem::path obj_name_file)
     {
-        obj_detector = new Detector(cfg_path.string(), weight_path.string());
+        obj_detector = new ObjectDetector(cfg_path.string(), weight_path.string());
 
-        obj_detector->nms = 0;
-        obj_names_        = ObjectNamesFromFile(obj_name_file.string());
-        obj_img           = cv::Mat::zeros(100, 100, CV_8UC1);
+        obj_names_ = ObjectNamesFromFile(obj_name_file.string());
+        obj_img    = cv::Mat::zeros(100, 100, CV_8UC1);
 
         enable_obj_detect = true;
     }
@@ -160,11 +159,9 @@ public:
     {
         std::thread erf_thread(&LaneDetectorTRT::Detect, erf_lane_detector, drive_window_.clone(), erf_lane_img);
 
-        std::future<std::vector<bbox_t>> obj_detect;
-        if (enable_obj_detect && !obj_detecting)
-        {
-            std::thread(&InfoCollector::detect, this, drive_window_, obj_detector, 0.5f, false).detach();
-        }
+
+        std::thread yolo_thread(&InfoCollector::detect, this, drive_window_, obj_detector);
+
 
         std::thread t1(&InfoCollector::ReadNumber, this, speed_ocr_, speed_img_, &speed_, true);
         std::thread t2(&InfoCollector::ReadNumber, this, speed_limit_ocr_, speed_limit_img_, &speed_limit_, false);
@@ -177,6 +174,7 @@ public:
         // t3.join();
 
         erf_thread.join();
+        yolo_thread.join();
     }
 
     void MergeLaneResult()
@@ -228,8 +226,8 @@ public:
         size_t obj_count = objs.size();
         for (int i = 0; i < obj_count; ++i)
         {
-            if (objs[i].obj_id != 2 && objs[i].obj_id != 5 && objs[i].obj_id != 6 && objs[i].obj_id != 7
-                && objs[i].obj_id != 9)
+            if (objs[i].class_id != 2 && objs[i].class_id != 5 && objs[i].class_id != 6 && objs[i].class_id != 7
+                && objs[i].class_id != 9)
             {
                 objs.erase(objs.begin() + i);
                 obj_count--;
@@ -251,8 +249,8 @@ public:
         size_t obj_count         = objs.size();
         for (int i = 0; i < obj_count; ++i)
         {
-            if (objs[i].obj_id != 2 && objs[i].obj_id != 5 && objs[i].obj_id != 6 && objs[i].obj_id != 7
-                && objs[i].obj_id != 9)
+            if (objs[i].class_id != 2 && objs[i].class_id != 5 && objs[i].class_id != 6 && objs[i].class_id != 7
+                && objs[i].class_id != 9)
             {
                 objs.erase(objs.begin() + i);
                 obj_count--;
@@ -335,7 +333,7 @@ private:
 
     std::vector<std::string> obj_names_;
 
-    Detector* obj_detector;
+    ObjectDetector* obj_detector;
 
     LaneDetectorTRT* erf_lane_detector = nullptr;
 
@@ -380,42 +378,48 @@ private:
         return file_lines;
     }
 
-    void detect(cv::Mat mat, Detector* detector, float thresh = 0.2, bool use_mean = false)
+    void detect(cv::Mat mat, ObjectDetector* detector)
     {
         obj_detecting = true;
         obj_img       = drive_window_.clone();
         if (mat.data == NULL)
             throw std::runtime_error("Image is empty");
-        auto image_ptr           = detector->mat_to_image_resize(mat);
-        std::vector<bbox_t> objs = detector->detect_resized(*image_ptr, mat.cols, mat.rows, thresh, use_mean);
+
+        std::vector<Object> objs = obj_detector->Detect(mat);
 
         size_t obj_count = objs.size();
         for (int i = 0; i < obj_count; ++i)
         {
-            if (objs[i].obj_id != 2 && objs[i].obj_id != 5 && objs[i].obj_id != 6 && objs[i].obj_id != 7
-                && objs[i].obj_id != 9)
+            if (objs[i].class_id != 2 && objs[i].class_id != 5 && objs[i].class_id != 6 && objs[i].class_id != 7
+                && objs[i].class_id != 9)
             {
                 objs.erase(objs.begin() + i);
                 obj_count--;
                 i--;
             }
         }
+
         draw_boxes(obj_img, objs, obj_names_);
         obj_detecting = false;
     }
 
-    void draw_boxes(cv::Mat mat_img, std::vector<bbox_t> result_vec, std::vector<std::string> obj_names)
+    void draw_boxes(cv::Mat mat_img, std::vector<Object> result_vec, std::vector<std::string> obj_names)
     {
+        int width  = mat_img.cols;
+        int height = mat_img.rows;
+
         for (auto& i : result_vec)
         {
+            cv::Point start((i.box.x - i.box.w / 2) * width, (i.box.y - i.box.h / 2) * height);
+            cv::Point end((i.box.x + i.box.w / 2) * width, (i.box.y + i.box.h / 2) * height);
             cv::Scalar color(60, 160, 260);
-            cv::rectangle(mat_img, cv::Rect(i.x, i.y, i.w, i.h), color, 3);
-            if (obj_names.size() > i.obj_id)
-                putText(
-                    mat_img, obj_names[i.obj_id], cv::Point2f(i.x, i.y - 10), cv::FONT_HERSHEY_COMPLEX_SMALL, 1, color);
-            if (i.track_id > 0)
-                putText(mat_img, std::to_string(i.track_id), cv::Point2f(i.x + 5, i.y + 15),
-                    cv::FONT_HERSHEY_COMPLEX_SMALL, 1, color);
+            cv::rectangle(mat_img, start, end, color, 1);
+            if (obj_names.size() > i.class_id)
+                putText(mat_img, obj_names[i.class_id], end, cv::FONT_HERSHEY_COMPLEX_SMALL, 1,
+                    color);
+            // if (i.track_id > 0)
+            //    putText(mat_img, std::to_string(i.track_id), cv::Point2f(i.x + 5, i.y + 15),
+            //        cv::FONT_HERSHEY_COMPLEX_SMALL, 1, color);
         }
     }
 };
