@@ -113,7 +113,7 @@ public:
     cv::Mat path_img;
     cv::Mat arrow_img;
 
-    int short_probe_len = 20;
+    int short_probe_len = 22;
     int long_probe_len  = 39;
 
     float angle_10_pix_left;

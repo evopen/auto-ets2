@@ -114,7 +114,7 @@ public:
     {
         if (collector_->speed_ < 30)
         {
-            input_->SetThrottleAndBrake(0.99);
+            input_->SetThrottleAndBrake(0.8);
             std::cout << "full throttle" << std::endl;
             return;
         }
@@ -137,9 +137,9 @@ public:
         }
         else
         {
-            float brake_force = -speed_cap / collector_->speed_;
+            float brake_force = -(float) (collector_->speed_ - speed_cap) * 4 / speed_cap;
             input_->SetThrottleAndBrake(brake_force);
-            std::cout << "brake: " << brake_force << std::endl;
+            printf("brake: %.2f", brake_force);
         }
     }
 
@@ -160,7 +160,7 @@ public:
             std::cout << "stage 1" << std::endl;
 
             input_->SetWheelAngle(-0.05);
-            if (shifted_ms > 1000)
+            if (shifted_ms > collector_->speed_ * 500)
             {
                 shift_stage      = 2;
                 shift_start_time = std::chrono::steady_clock::now();
@@ -169,7 +169,7 @@ public:
             break;
         case 2:
             input_->SetWheelAngle(0.05);
-            if (shifted_ms > 1000)
+            if (shifted_ms > collector_->speed_ * 200)
             {
                 shift_stage = 0;
                 directive   = Directive::kStraight;
@@ -196,7 +196,7 @@ public:
             std::cout << "stage 1" << std::endl;
 
             input_->SetWheelAngle(0.05);
-            if (shifted_ms > 1000)
+            if (shifted_ms > collector_->speed_ * 500)
             {
                 shift_stage      = 2;
                 shift_start_time = std::chrono::steady_clock::now();
@@ -205,7 +205,7 @@ public:
             break;
         case 2:
             input_->SetWheelAngle(-0.05);
-            if (shifted_ms > 1200)
+            if (shifted_ms > collector_->speed_ * 200)
             {
                 shift_stage = 0;
                 directive   = Directive::kStraight;

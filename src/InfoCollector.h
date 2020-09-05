@@ -412,10 +412,10 @@ private:
         {
             cv::Point start((i.box.x - i.box.w / 2) * width, (i.box.y - i.box.h / 2) * height);
             cv::Point end((i.box.x + i.box.w / 2) * width, (i.box.y + i.box.h / 2) * height);
-            cv::Scalar color(60, 160, 260);
+            cv::Scalar color(255, 0, 0);
             cv::rectangle(mat_img, start, end, color, 1);
             if (obj_names.size() > i.class_id)
-                putText(mat_img, obj_names[i.class_id], end, cv::FONT_HERSHEY_COMPLEX_SMALL, 1,
+                putText(mat_img, obj_names[i.class_id], end, cv::FONT_HERSHEY_COMPLEX_SMALL, 2,
                     color);
             // if (i.track_id > 0)
             //    putText(mat_img, std::to_string(i.track_id), cv::Point2f(i.x + 5, i.y + 15),

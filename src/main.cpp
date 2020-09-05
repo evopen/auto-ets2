@@ -107,8 +107,8 @@ int main()
 
             // cv::imshow("game", collector.game_window_);
             // cv::imshow("drive", collector.drive_window_);
-            // cv::imshow("speed", collector.speed_img_);
-            // cv::imshow("limit", collector.speed_limit_img_);
+            cv::imshow("speed", collector.speed_img_);
+            cv::imshow("limit", collector.speed_limit_img_);
             // cv::imshow("cruise", collector.cruise_speed_img_);
             // cv::imshow("lane_erf", collector.erf_lane_img * 50);
             // cv::imshow("lane_scnn", collector.scnn_lane_img);
@@ -118,17 +118,17 @@ int main()
             // cv::imshow("lane2", collector.warp_lanes[2]);
             // cv::imshow("lane3", collector.lanes[2]);
             // cv::imshow("lane4", collector.lanes[3]);
-            // cv::imshow("all", collector.all_lanes);
+            cv::imshow("all", collector.all_lanes);
             // cv::imshow("warp", collector.lane_warp_img_);
             // cv::imshow("hough", collector.lane_hough_img_);
             cv::imshow("objs", collector.obj_img);
 
-            // cv::resizeWindow("speed", 300, 50);
-            // cv::resizeWindow("limit", 300, 50);
+            cv::resizeWindow("speed", 300, 50);
+            cv::resizeWindow("limit", 300, 50);
             // cv::resizeWindow("cruise", 300, 50);
 
-            // cv::setWindowTitle(speed_window_title, "speed" + std::to_string(collector.speed_));
-            // cv::setWindowTitle(speed_limit_window_title, "limit" + std::to_string(collector.speed_limit_));
+            cv::setWindowTitle(speed_window_title, "speed" + std::to_string(collector.speed_));
+            cv::setWindowTitle(speed_limit_window_title, "limit" + std::to_string(collector.speed_limit_));
             // cv::setWindowTitle(cruise_speed_window_title, "cruise" + std::to_string(collector.cruise_speed_));
 
             if (cv::waitKey(1) == 27)
